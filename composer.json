@@ -1,0 +1,40 @@
+{
+    "name": "liquiddesign/translator",
+    "description": "Nette extension for translating.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {"Translator\\": "src/"},
+        "classmap": []
+    },
+    "autoload-dev": {
+        "psr-4": { "Translator\\Tests\\": "tests/" }
+    },
+    "require": {
+        "php": ">=7.4",
+        "nette/application": "~3.0",
+        "nette/utils":"~3.0",
+        "nette/di":"~3.0",
+        "latte/latte":"~2.0",
+        "tracy/tracy":"*",
+        "liquiddesign/storm": "@dev",
+        "ext-pdo": "*"
+    },
+    "require-dev":
+    {
+        "nette/tester":"*",
+        "tracy/tracy":"*",
+        "composer/composer": "*",
+        "liquiddesign/codestyle": "@dev",
+        "liquiddesign/migrator": "@dev",
+        "phpstan/phpstan": "*"
+    },
+    "scripts": {
+        "phpstan": "phpstan analyse --memory-limit 1G -c phpstan.neon",
+        "phpcs": "phpcs --standard=ruleset.xml --ignore=assets src",
+        "phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets src",
+        "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
+        "aux-sync-database": "Migrator\\Scripts::syncDatabase",
+        "sync-database": "@aux-sync-database Translator\\Tests\\Bootstrap"
+    }
+}

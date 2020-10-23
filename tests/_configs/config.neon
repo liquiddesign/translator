@@ -1,0 +1,36 @@
+parameters:
+	langs:
+		'cz': '_cz'
+		'en': '_en'
+
+services:
+	- Tracy\Debugger::getBar
+	- Nette\Caching\Storages\DevNullStorage
+	- Nette\Application\LinkGenerator
+	routing.router: Nette\Application\Routers\RouteList
+	- Nette\Http\Request
+	- Nette\Http\Response
+	- Nette\Http\UrlScript
+
+translator:
+	mutations:
+		'cz':'_cz'
+		'en':'_en'
+	cache: true
+	createMode: true
+
+storm:
+	debug: true
+	connections:
+		default:
+			host: 127.0.0.1
+			dbname: _test_translator
+			user: root
+			password: ""
+			driver: mysql
+			charset: utf8
+			collate: utf8_czech_ci
+			mutations:
+				'cz':'_cz'
+				'en':'_en'
+			primaryKeyGenerator: StORM\DIConnection::generateUuid
