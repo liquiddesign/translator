@@ -11,12 +11,8 @@ $container = \Translator\Tests\Bootstrap::createContainer();
 $translator = $container->getByType(\Translator\Translator::class);
 
 dump($translator);
-$translator->setLanguage('en');
-dump($translator->translate("Košík"));
+$translator->setMutation('en');
+dump($translator->translate("Košík1"));
 dump($translator->getUntranslatedCount());
-//$translator->setLanguage('cz');
-//dump($translator->translate("Basket"));
-
-//dump($translator->translate("Basket"));
 
 

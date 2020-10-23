@@ -15,7 +15,7 @@ class TranslationRepository extends Repository
 		parent::__construct($connection, $schemaManager);
 	}
 	
-	public function getLang(string $message, $lang): ?Entity
+	public function getStringInMutation(string $message, $lang): ?Entity
 	{
 		try {
 			return $this->many()->where('text_'.$lang, $message)->fetch();
@@ -32,19 +32,8 @@ class TranslationRepository extends Repository
 		return $this->many()->toArray();
 	}
 	
-	public function createNew(string $text, string $lang, array $languages): Entity
+	public function createNew(string $text, string $mutation, array $availableMutations): Entity
 	{
-		$values = array();
-		$values[$lang]=$text;
-
-		foreach (\array_keys($languages) as $key) {
-			if ($key === $lang) {
-				continue;
-			}
-
-			$values[$key] = '';
-		}
-
-		return $this->createOne(['text' => $values]);
+		return $this->createOne(['text' => [$mutation => $text]]);
 	}
 }

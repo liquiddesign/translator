@@ -31,7 +31,7 @@ class TranslatorDI extends \Nette\DI\CompilerExtension
 		
 		$pages = $builder->addDefinition($this->prefix('main'))->setType(Translator::class);
 		
-		$pages->addSetup('setAvailableLanguages', [$config['mutations']]);
+		$pages->addSetup('setAvailableMutations', [$config['mutations']]);
 		$pages->addSetup('setCache', [$config['cache']]);
 		$pages->addSetup('setCreateMode', [$config['createMode']]);
 	}

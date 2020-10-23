@@ -11,14 +11,14 @@ use Translator\DB\TranslationRepository;
 
 class Translator implements ITranslator
 {
-	private ?string $selectedLanguage = null;
+	private ?string $selectedMutation = null;
 	
 	/**
 	 * @var mixed[]
 	 */
-	private array $availableLanguages;
+	private array $availableMutations;
 	
-	private string $defaultLanguage;
+	private string $defaultMutation;
 	
 	private bool $cacheActive;
 	
@@ -41,36 +41,38 @@ class Translator implements ITranslator
 		$this->cache = new \Nette\Caching\Cache($storage, "translator");
 	}
 	
-	public function setAvailableLanguages(array $availableLanguages): void
+	public function setAvailableMutations(array $availableMutations): void
 	{
-		$this->availableLanguages = $availableLanguages;
-		
+		$this->availableMutations = $availableMutations;
+		if (count($availableMutations) == 0) {
+			return;
+		}
 		try {
-			$this->setDefaultLanguage(\array_keys($availableLanguages)[0]);
-		} catch (NotAvailableLanguage $ignored) {
+			$this->setDefaultMutation(\array_keys($availableMutations)[0]);
+		} catch (NotAvailableMutation $ignored) {
 		}
 	}
 	
 	/**
-	 * @param string $defaultLanguage
-	 * @throws \Translator\NotAvailableLanguage
+	 * @param string $defaultMutation
+	 * @throws \Translator\NotAvailableMutation
 	 */
-	public function setDefaultLanguage(string $defaultLanguage): void
+	public function setDefaultMutation(string $defaultMutation): void
 	{
-		if (!isset($this->getAvailableLanguages()[$defaultLanguage])) {
-			throw new NotAvailableLanguage();
+		if (!isset($this->getAvailableMutations()[$defaultMutation])) {
+			throw new NotAvailableMutation();
 		}
 		
-		$this->defaultLanguage = $defaultLanguage;
-		$this->setLanguage($defaultLanguage);
+		$this->defaultMutation = $defaultMutation;
+		$this->setMutation($defaultMutation);
 	}
 	
 	/**
 	 * @return mixed[]
 	 */
-	public function getAvailableLanguages(): array
+	public function getAvailableMutations(): array
 	{
-		return $this->availableLanguages;
+		return $this->availableMutations;
 	}
 	
 	public function setCache(bool $cacheActive): void
@@ -83,27 +85,27 @@ class Translator implements ITranslator
 		$this->createMode = $createMode;
 	}
 	
-	public function getLanguage(): string
+	public function getMutation(): string
 	{
-		return $this->selectedLanguage ?: $this->getDefaultLanguage();
+		return $this->selectedMutation ?: $this->getDefaultMutation();
 	}
 	
 	/**
-	 * @param string $selectedLanguage
-	 * @throws \Translator\NotAvailableLanguage
+	 * @param string $selectedMutation
+	 * @throws \Translator\NotAvailableMutation
 	 */
-	public function setLanguage(string $selectedLanguage): void
+	public function setMutation(string $selectedMutation): void
 	{
-		if (!isset($this->getAvailableLanguages()[$selectedLanguage])) {
-			throw new NotAvailableLanguage();
+		if (!isset($this->getAvailableMutations()[$selectedMutation])) {
+			throw new NotAvailableMutation();
 		}
 		
-		$this->selectedLanguage = $selectedLanguage;
+		$this->selectedMutation = $selectedMutation;
 	}
 	
-	public function getDefaultLanguage(): string
+	public function getDefaultMutation(): string
 	{
-		return $this->defaultLanguage;
+		return $this->defaultMutation;
 	}
 	
 	/**
@@ -127,9 +129,9 @@ class Translator implements ITranslator
 		}
 	}
 	
-	public function checkLanguageAvailable($lang): bool
+	public function checkMutationAvailable($mutation): bool
 	{
-		return isset($this->getAvailableLanguages()[$lang]);
+		return isset($this->getAvailableMutations()[$mutation]);
 	}
 	
 	/**
@@ -141,17 +143,17 @@ class Translator implements ITranslator
 		$cache = $this->cache;
 		$arguments = \func_get_args();
 		
-		$lang = isset($arguments['lang']) && $this->checkLanguageAvailable($arguments['lang']) ? $arguments['lang'] : $this->getLanguage();
+		$mutation = isset($arguments['mutation']) && $this->checkMutationAvailable($arguments['mutation']) ? $arguments['mutation'] : $this->getMutation();
 		
 		if ($this->cacheActive === true) {
-			$translation = $cache->load($message . '_' . $this->getDefaultLanguage(), function () use ($lang, $message) {
-				return $this->getTranslation($message, $lang);
+			$translation = $cache->load($message . '_' . $this->getDefaultMutation(), function () use ($mutation, $message) {
+				return $this->getTranslation($message, $mutation);
 			});
 		} else {
-			$translation = $this->getTranslation($message, $lang);
+			$translation = $this->getTranslation($message, $mutation);
 		}
 		
-		if ($translation === '') {
+		if ($translation == null) {
 			$translation = $message;
 			$this->addUntranslatedString($message);
 		}
@@ -161,16 +163,16 @@ class Translator implements ITranslator
 	
 	/**
 	 * @param string $message
-	 * @param string $lang
+	 * @param string $mutation
 	 * @return string
 	 */
-	private function getTranslation(string $message, string $lang): string
+	private function getTranslation(string $message, string $mutation): string
 	{
-		$translation = $this->translationRepo->getLang($message, $this->getDefaultLanguage());
+		$translation = $this->translationRepo->getStringInMutation($message, $this->getDefaultMutation());
 		
 		if ($translation === null) {
-			if ($this->createMode === true) {
-				$this->translationRepo->createNew($message, $this->getDefaultLanguage(), $this->getAvailableLanguages());
+			if ($this->createMode) {
+				$this->translationRepo->createNew($message, $this->getDefaultMutation(), $this->getAvailableMutations());
 			}
 			
 			$this->addUntranslatedString($message);
@@ -178,6 +180,6 @@ class Translator implements ITranslator
 			return $message;
 		}
 		
-		return $translation->getValue('text', $lang);
+		return $translation->getValue('text', $mutation);
 	}
 }

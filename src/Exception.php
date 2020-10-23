@@ -3,11 +3,9 @@ declare(strict_types=1);
 
 namespace Translator;
 
-class NotAvailableLanguage extends \Exception
+class NotAvailableMutation extends \Exception
 {
-	protected $message = 'This language is not available!';
+	protected $message = 'This mutation is not available!';
 }
 
-class TranslationNotFound extends \Exception
-{
-}
+

@@ -6,7 +6,7 @@ namespace Translator\Tests\Cases;
 use Nette\DI\Container;
 use Tester\Assert;
 use Tester\TestCase;
-use Translator\NotAvailableLanguage;
+use Translator\NotAvailableMutation;
 use Translator\Tests\Bootstrap;
 use Translator\Translator;
 
@@ -38,22 +38,22 @@ class TranslatorTest extends TestCase
 	public function testLanguageChanging()
 	{
 		Assert::equal('Košík', $this->translator->translate('Košík'));
-		$this->translator->setLanguage("cz");
+		$this->translator->setMutation("cz");
 		Assert::equal('Košík', $this->translator->translate('Košík'));
-		$this->translator->setLanguage("en");
+		$this->translator->setMutation("en");
 		Assert::equal('Basket', $this->translator->translate('Košík'));
-		$this->translator->setLanguage("cz");
+		$this->translator->setMutation("cz");
 		Assert::equal('Košík', $this->translator->translate('Košík'));
-		$this->translator->setLanguage("en");
+		$this->translator->setMutation("en");
 		Assert::notEqual('Košík', $this->translator->translate('Košík'));
 	}
 	
 	public function testNotExistTranslation()
 	{
-		$this->translator->setLanguage("en");
+		$this->translator->setMutation("en");
 		Assert::equal('Košík123', $this->translator->translate('Košík123'));
 		Assert::equal('Košík123', $this->translator->translate('Košík123'));
-		$this->translator->setLanguage("cz");
+		$this->translator->setMutation("cz");
 		Assert::equal('Košík123', $this->translator->translate('Košík123'));
 	}
 	

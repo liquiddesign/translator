@@ -11,7 +11,7 @@ class Translation extends Entity
 {
 	
 	/**
-	 * @column{"mutations":true,"nullable":true}
+	 * @column{"mutations":true}
 	 */
-	public string $text;
+	public ?string $text;
 }
