@@ -2,11 +2,10 @@ parameters:
 	langs:
 		'cz': '_cz'
 		'en': '_en'
-	dir: 'temp'
 
 services:
 	- Tracy\Debugger::getBar
-	- Nette\Caching\Storages\FileStorage(%dir%)
+	- Nette\Caching\Storages\FileStorage('C:\\wamp64\\www\\translator\\tests\temp')
 	- Nette\Application\LinkGenerator
 	routing.router: Nette\Application\Routers\RouteList
 	- Nette\Http\Request

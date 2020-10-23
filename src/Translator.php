@@ -43,11 +43,11 @@ class Translator implements ITranslator
 	public function setAvailableMutations(array $availableMutations): void
 	{
 		$this->availableMutations = $availableMutations;
-
+		
 		if (\count($availableMutations) === 0) {
 			return;
 		}
-
+		
 		try {
 			$this->setDefaultMutation(\array_keys($availableMutations)[0]);
 		} catch (NotAvailableMutation $ignored) {
@@ -147,7 +147,7 @@ class Translator implements ITranslator
 		$mutation = isset($arguments['mutation']) && $this->checkMutationAvailable($arguments['mutation']) ? $arguments['mutation'] : $this->getMutation();
 		
 		if ($this->cacheActive === true) {
-			$translation = $cache->load($message . '_' . $this->getDefaultMutation(), function () use ($mutation, $message) {
+			$translation = $cache->load($message . '_' . $mutation, function () use ($mutation, $message) {
 				return $this->getTranslation($message, $mutation);
 			});
 		} else {
@@ -162,7 +162,7 @@ class Translator implements ITranslator
 		return \vsprintf($translation, $arguments);
 	}
 	
-	private function getTranslation(string $message, string $mutation): string
+	private function getTranslation(string $message, string $mutation): ?string
 	{
 		$translation = $this->translationRepo->getStringInMutation($message, $this->getDefaultMutation());
 		
@@ -177,5 +177,6 @@ class Translator implements ITranslator
 		}
 		
 		return $translation->getValue('text', $mutation);
+		
 	}
 }

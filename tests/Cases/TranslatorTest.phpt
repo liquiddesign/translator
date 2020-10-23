@@ -28,6 +28,7 @@ class TranslatorTest extends TestCase
 		$this->container = Bootstrap::createContainer();
 		
 		$this->translator = $this->container->getByType(Translator::class);
+		
 	}
 	
 	public function testExists()

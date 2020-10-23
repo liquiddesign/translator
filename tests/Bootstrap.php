@@ -44,6 +44,7 @@ class Bootstrap
 			}
 		});
 		
+		
 		return new $class();
 	}
 }
