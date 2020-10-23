@@ -37,7 +37,7 @@ class Translator implements ITranslator
 	public function __construct(TranslationRepository $translationRepo)
 	{
 		$this->translationRepo = $translationRepo;
-		$storage = new FileStorage(__DIR__.DIRECTORY_SEPARATOR.'/');
+		$storage = new FileStorage(__DIR__.DIRECTORY_SEPARATOR.'/temp');
 		$this->cache = new \Nette\Caching\Cache($storage, "translator");
 	}
 	
