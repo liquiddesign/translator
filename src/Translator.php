@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Translator;
 
 use Nette\Caching\IStorage;
-use Nette\Caching\Storages\FileStorage;
 use Nette\Localization\ITranslator;
 use Translator\DB\TranslationRepository;
 
@@ -44,9 +43,11 @@ class Translator implements ITranslator
 	public function setAvailableMutations(array $availableMutations): void
 	{
 		$this->availableMutations = $availableMutations;
-		if (count($availableMutations) == 0) {
+
+		if (\count($availableMutations) === 0) {
 			return;
 		}
+
 		try {
 			$this->setDefaultMutation(\array_keys($availableMutations)[0]);
 		} catch (NotAvailableMutation $ignored) {
@@ -153,7 +154,7 @@ class Translator implements ITranslator
 			$translation = $this->getTranslation($message, $mutation);
 		}
 		
-		if ($translation == null) {
+		if ($translation === null) {
 			$translation = $message;
 			$this->addUntranslatedString($message);
 		}
@@ -161,18 +162,13 @@ class Translator implements ITranslator
 		return \vsprintf($translation, $arguments);
 	}
 	
-	/**
-	 * @param string $message
-	 * @param string $mutation
-	 * @return string
-	 */
 	private function getTranslation(string $message, string $mutation): string
 	{
 		$translation = $this->translationRepo->getStringInMutation($message, $this->getDefaultMutation());
 		
 		if ($translation === null) {
 			if ($this->createMode) {
-				$this->translationRepo->createNew($message, $this->getDefaultMutation(), $this->getAvailableMutations());
+				$this->translationRepo->createNew($message, $this->getDefaultMutation());
 			}
 			
 			$this->addUntranslatedString($message);

@@ -9,7 +9,6 @@ use StORM\Entity;
  */
 class Translation extends Entity
 {
-	
 	/**
 	 * @column{"mutations":true}
 	 */

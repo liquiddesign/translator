@@ -9,8 +9,7 @@ use StORM\SchemaManager;
 
 class TranslationRepository extends Repository
 {
-	
-	public function __construct(DIConnection $connection = null, SchemaManager $schemaManager = null)
+	public function __construct(?DIConnection $connection = null, ?SchemaManager $schemaManager = null)
 	{
 		parent::__construct($connection, $schemaManager);
 	}
@@ -24,15 +23,7 @@ class TranslationRepository extends Repository
 		}
 	}
 	
-	/**
-	 * @return array
-	 */
-	public function getAll(): array
-	{
-		return $this->many()->toArray();
-	}
-	
-	public function createNew(string $text, string $mutation, array $availableMutations): Entity
+	public function createNew(string $text, string $mutation): Entity
 	{
 		return $this->createOne(['text' => [$mutation => $text]]);
 	}
