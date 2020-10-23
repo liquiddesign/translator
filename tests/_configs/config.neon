@@ -2,10 +2,11 @@ parameters:
 	langs:
 		'cz': '_cz'
 		'en': '_en'
+	dir: 'temp'
 
 services:
 	- Tracy\Debugger::getBar
-	- Nette\Caching\Storages\DevNullStorage
+	- Nette\Caching\Storages\FileStorage(%dir%)
 	- Nette\Application\LinkGenerator
 	routing.router: Nette\Application\Routers\RouteList
 	- Nette\Http\Request

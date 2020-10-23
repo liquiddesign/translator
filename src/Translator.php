@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Translator;
 
+use Nette\Caching\IStorage;
 use Nette\Caching\Storages\FileStorage;
 use Nette\Localization\ITranslator;
 use Translator\DB\TranslationRepository;
@@ -34,10 +35,9 @@ class Translator implements ITranslator
 	 */
 	private array $untranslated = [];
 	
-	public function __construct(TranslationRepository $translationRepo)
+	public function __construct(TranslationRepository $translationRepo, IStorage $storage)
 	{
 		$this->translationRepo = $translationRepo;
-		$storage = new FileStorage(__DIR__.DIRECTORY_SEPARATOR.'/temp');
 		$this->cache = new \Nette\Caching\Cache($storage, "translator");
 	}
 	
