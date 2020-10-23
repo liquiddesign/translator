@@ -10,7 +10,7 @@ use StORM\SchemaManager;
 class TranslationRepository extends Repository
 {
 	
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager)
+	public function __construct(DIConnection $connection = null, SchemaManager $schemaManager = null)
 	{
 		parent::__construct($connection, $schemaManager);
 	}

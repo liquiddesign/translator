@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Translator;
 
-use Nette\Caching\IStorage;
+use Nette\Caching\Storages\FileStorage;
 use Nette\Localization\ITranslator;
 use Translator\DB\TranslationRepository;
 
@@ -25,19 +25,20 @@ class Translator implements ITranslator
 	
 	private TranslationRepository $translationRepo;
 	
-	private IStorage $storage;
-	
 	private int $untranslatedCount = 0;
+	
+	private \Nette\Caching\Cache $cache;
 	
 	/**
 	 * @var mixed[]
 	 */
 	private array $untranslated = [];
 	
-	public function __construct(TranslationRepository $translationRepo, IStorage $storage)
+	public function __construct(TranslationRepository $translationRepo)
 	{
 		$this->translationRepo = $translationRepo;
-		$this->storage = $storage;
+		$storage = new FileStorage(__DIR__.DIRECTORY_SEPARATOR.'/');
+		$this->cache = new \Nette\Caching\Cache($storage, "translator");
 	}
 	
 	public function setAvailableLanguages(array $availableLanguages): void
@@ -137,7 +138,7 @@ class Translator implements ITranslator
 	 */
 	public function translate($message, ...$parameters): string
 	{
-		$cache = new \Nette\Caching\Cache($this->storage, "translator");
+		$cache = $this->cache;
 		$arguments = \func_get_args();
 		
 		$lang = isset($arguments['lang']) && $this->checkLanguageAvailable($arguments['lang']) ? $arguments['lang'] : $this->getLanguage();
