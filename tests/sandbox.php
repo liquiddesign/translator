@@ -12,7 +12,7 @@ $translator = $container->getByType(\Translator\Translator::class);
 
 dump($translator);
 $translator->setMutation('en');
-dump($translator->translate("Košík1"));
+dump($translator->translate("Košík123"));
 dump($translator->getUntranslatedCount());
-
+dump($translator->getUntranslated());
 
