@@ -14,7 +14,6 @@ class TranslatorDI extends \Nette\DI\CompilerExtension
 	public function getConfigSchema(): Schema
 	{
 		return Expect::structure([
-			'mutations' => Expect::array(),
 			'cache' => Expect::bool(true),
 			'createMode' => Expect::bool(false),
 		]);
@@ -31,7 +30,6 @@ class TranslatorDI extends \Nette\DI\CompilerExtension
 		
 		$pages = $builder->addDefinition($this->prefix('main'))->setType(Translator::class);
 		
-		$pages->addSetup('setAvailableMutations', [$config['mutations']]);
 		$pages->addSetup('setCache', [$config['cache']]);
 		$pages->addSetup('setCreateMode', [$config['createMode']]);
 	}

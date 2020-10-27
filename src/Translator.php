@@ -7,6 +7,7 @@ namespace Translator;
 use Nette\Caching\IStorage;
 use Nette\Localization\ITranslator;
 use Translator\DB\TranslationRepository;
+use Tracy;
 
 class Translator implements ITranslator
 {
@@ -19,13 +20,11 @@ class Translator implements ITranslator
 	
 	private string $defaultMutation;
 	
-	private bool $cacheActive;
+	private bool $cacheActive = false;
 	
-	private bool $createMode;
+	private bool $createMode = false;
 	
 	private TranslationRepository $translationRepo;
-	
-	private int $untranslatedCount = 0;
 	
 	private \Nette\Caching\Cache $cache;
 	
@@ -37,16 +36,16 @@ class Translator implements ITranslator
 	public function __construct(TranslationRepository $translationRepo, IStorage $storage)
 	{
 		$this->translationRepo = $translationRepo;
-		$this->cache = new \Nette\Caching\Cache($storage, "translator");
+		$this->cache = new \Nette\Caching\Cache($storage, 'translator');
+		$this->setAvailableMutations($this->translationRepo->getConnection()->getAvailableMutations());
+		$this->setDefaultMutation($this->translationRepo->getConnection()->getMutation());
+		
+		Tracy\Debugger::getBar()->addPanel(new TranslatorPanel($this->getMutation()));
 	}
 	
 	public function setAvailableMutations(array $availableMutations): void
 	{
 		$this->availableMutations = $availableMutations;
-		
-		if (\count($availableMutations) === 0) {
-			return;
-		}
 		
 		try {
 			$this->setDefaultMutation(\array_keys($availableMutations)[0]);
@@ -102,6 +101,7 @@ class Translator implements ITranslator
 		}
 		
 		$this->selectedMutation = $selectedMutation;
+		$this->translationRepo->getConnection()->setMutation($selectedMutation);
 	}
 	
 	public function getDefaultMutation(): string
@@ -119,14 +119,15 @@ class Translator implements ITranslator
 	
 	public function getUntranslatedCount(): int
 	{
-		return $this->untranslatedCount;
+		return count($this->untranslated);
 	}
 	
 	public function addUntranslatedString(string $string): void
 	{
-		if (!isset($this->untranslated[$string])) {
-			$this->untranslatedCount++;
-			$this->untranslated[$string] = true;
+		if (isset($this->untranslated[$string])) {
+			$this->untranslated[$string]++;
+		} else {
+			$this->untranslated[$string] = 1;
 		}
 	}
 	
@@ -139,41 +140,39 @@ class Translator implements ITranslator
 	 * @inheritDoc
 	 * @return string
 	 */
-	public function translate($message, ...$parameters): string
+	public function translate($uuid, ...$parameters): string
 	{
 		$cache = $this->cache;
 		$arguments = \func_get_args();
 		
 		$mutation = isset($arguments['mutation']) && $this->checkMutationAvailable($arguments['mutation']) ? $arguments['mutation'] : $this->getMutation();
 		
-		if ($this->cacheActive === true) {
-			$translation = $cache->load($message . '_' . $mutation, function () use ($mutation, $message) {
-				return $this->getTranslation($message, $mutation);
+		if ($this->cacheActive) {
+			$translation = $cache->load("$uuid-$mutation", function () use ($mutation, $uuid) {
+				return $this->getTranslation($uuid, $mutation);
 			});
 		} else {
-			$translation = $this->getTranslation($message, $mutation);
+			$translation = $this->getTranslation($uuid, $mutation);
 		}
 		
 		if ($translation === null) {
-			$translation = $message;
-			$this->addUntranslatedString($message);
+			$translation = $uuid;
+			$this->addUntranslatedString($uuid);
 		}
 		
 		return \vsprintf($translation, $arguments);
 	}
 	
-	private function getTranslation(string $message, string $mutation): ?string
+	private function getTranslation(string $uuid, string $mutation): ?string
 	{
-		$translation = $this->translationRepo->getStringInMutation($message, $this->getDefaultMutation());
+		$translation = $this->translationRepo->one($uuid);
 		
 		if ($translation === null) {
 			if ($this->createMode) {
-				$this->translationRepo->createNew($message, $this->getDefaultMutation());
+				$this->translationRepo->createNew($uuid);
 			}
 			
-			$this->addUntranslatedString($message);
-			
-			return $message;
+			return null;
 		}
 		
 		return $translation->getValue('text', $mutation);

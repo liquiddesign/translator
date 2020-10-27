@@ -13,9 +13,6 @@ services:
 	- Nette\Http\UrlScript
 
 translator:
-	mutations:
-		'cz':'_cz'
-		'en':'_en'
 	cache: true
 	createMode: true
 
@@ -33,4 +30,3 @@ storm:
 			mutations:
 				'cz':'_cz'
 				'en':'_en'
-			primaryKeyGenerator: StORM\DIConnection::generateUuid

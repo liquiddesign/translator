@@ -14,17 +14,8 @@ class TranslationRepository extends Repository
 		parent::__construct($connection, $schemaManager);
 	}
 	
-	public function getStringInMutation(string $message, $lang): ?Entity
+	public function createNew(string $uuid): Entity
 	{
-		try {
-			return $this->many()->where('text_'.$lang, $message)->fetch();
-		} catch (\Exception $e) {
-			return null;
-		}
-	}
-	
-	public function createNew(string $text, string $mutation): Entity
-	{
-		return $this->createOne(['text' => [$mutation => $text]]);
+		return $this->createOne(['uuid'=>$uuid]);
 	}
 }

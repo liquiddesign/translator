@@ -38,15 +38,14 @@ class TranslatorTest extends TestCase
 	
 	public function testLanguageChanging()
 	{
-		Assert::equal('Košík', $this->translator->translate('Košík'));
 		$this->translator->setMutation("cz");
-		Assert::equal('Košík', $this->translator->translate('Košík'));
+		Assert::equal('Košík', $this->translator->translate('kosik'));
 		$this->translator->setMutation("en");
-		Assert::equal('Basket', $this->translator->translate('Košík'));
+		Assert::equal('Shopping cart', $this->translator->translate('kosik'));
 		$this->translator->setMutation("cz");
-		Assert::equal('Košík', $this->translator->translate('Košík'));
+		Assert::equal('Košík', $this->translator->translate('kosik'));
 		$this->translator->setMutation("en");
-		Assert::notEqual('Košík', $this->translator->translate('Košík'));
+		Assert::notEqual('Košík', $this->translator->translate('kosik'));
 	}
 	
 	public function testNotExistTranslation()
