@@ -11,7 +11,7 @@ use Tracy;
 
 class Translator implements ITranslator
 {
-	private ?string $selectedMutation = null;
+	private string $selectedMutation;
 	
 	/**
 	 * @var mixed[]
@@ -39,8 +39,13 @@ class Translator implements ITranslator
 		$this->cache = new \Nette\Caching\Cache($storage, 'translator');
 		$this->setAvailableMutations($this->translationRepo->getConnection()->getAvailableMutations());
 		$this->setDefaultMutation($this->translationRepo->getConnection()->getMutation());
+		$this->refreshTracyPanel();
+	}
+	
+	private function refreshTracyPanel()
+	{
+		Tracy\Debugger::getBar()->addPanel(new TranslatorPanel($this->getMutation(), $this->getAvailableMutations(), $this->getUntranslated()), 'translator');
 		
-		Tracy\Debugger::getBar()->addPanel(new TranslatorPanel($this->getMutation()));
 	}
 	
 	public function setAvailableMutations(array $availableMutations): void
@@ -102,6 +107,7 @@ class Translator implements ITranslator
 		
 		$this->selectedMutation = $selectedMutation;
 		$this->translationRepo->getConnection()->setMutation($selectedMutation);
+		$this->refreshTracyPanel();
 	}
 	
 	public function getDefaultMutation(): string
@@ -159,6 +165,8 @@ class Translator implements ITranslator
 			$translation = $uuid;
 			$this->addUntranslatedString($uuid);
 		}
+		
+		$this->refreshTracyPanel();
 		
 		return \vsprintf($translation, $arguments);
 	}
