@@ -10,6 +10,7 @@ $container = \Translator\Tests\Bootstrap::createContainer();
 
 $translator = $container->getByType(\Translator\Translator::class);
 
+
 dump($translator);
 dump($translator->translate("Košík123"));
 $translator->setMutation('cz');
@@ -17,4 +18,6 @@ dump($translator->translate("kosik"));
 $translator->setMutation('en');
 dump($translator->translate("kosik"));
 dump($translator->getUntranslated());
+
+
 

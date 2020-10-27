@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Translator;
 
+use Nette\Caching\Cache;
 use Nette\Caching\IStorage;
 use Nette\Localization\ITranslator;
+use Translator\Bridges\TranslatorTracy;
 use Translator\DB\TranslationRepository;
 use Tracy;
 
@@ -26,7 +28,7 @@ class Translator implements ITranslator
 	
 	private TranslationRepository $translationRepo;
 	
-	private \Nette\Caching\Cache $cache;
+	private Cache $cache;
 	
 	/**
 	 * @var mixed[]
@@ -36,16 +38,11 @@ class Translator implements ITranslator
 	public function __construct(TranslationRepository $translationRepo, IStorage $storage)
 	{
 		$this->translationRepo = $translationRepo;
-		$this->cache = new \Nette\Caching\Cache($storage, 'translator');
+		$this->cache = new Cache($storage, 'translator');
 		$this->setAvailableMutations($this->translationRepo->getConnection()->getAvailableMutations());
 		$this->setDefaultMutation($this->translationRepo->getConnection()->getMutation());
-		$this->refreshTracyPanel();
-	}
-	
-	private function refreshTracyPanel()
-	{
-		Tracy\Debugger::getBar()->addPanel(new TranslatorPanel($this->getMutation(), $this->getAvailableMutations(), $this->getUntranslated()), 'translator');
 		
+		Tracy\Debugger::getBar()->addPanel(new TranslatorTracy($this));
 	}
 	
 	public function setAvailableMutations(array $availableMutations): void
@@ -107,7 +104,6 @@ class Translator implements ITranslator
 		
 		$this->selectedMutation = $selectedMutation;
 		$this->translationRepo->getConnection()->setMutation($selectedMutation);
-		$this->refreshTracyPanel();
 	}
 	
 	public function getDefaultMutation(): string
@@ -165,8 +161,6 @@ class Translator implements ITranslator
 			$translation = $uuid;
 			$this->addUntranslatedString($uuid);
 		}
-		
-		$this->refreshTracyPanel();
 		
 		return \vsprintf($translation, $arguments);
 	}
