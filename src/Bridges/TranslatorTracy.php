@@ -2,7 +2,6 @@
 
 namespace Translator\Bridges;
 
-use Latte\Runtime\Template;
 use Tracy\IBarPanel;
 use Translator\Translator;
 
@@ -44,7 +43,6 @@ class TranslatorTracy implements IBarPanel
 	/**
 	 * Captures PHP output into a string.
 	 * @param callable $func
-	 * @return string
 	 * @throws \Throwable
 	 */
 	public static function capture(callable $func): string

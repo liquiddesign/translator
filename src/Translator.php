@@ -7,9 +7,9 @@ namespace Translator;
 use Nette\Caching\Cache;
 use Nette\Caching\IStorage;
 use Nette\Localization\ITranslator;
+use Tracy;
 use Translator\Bridges\TranslatorTracy;
 use Translator\DB\TranslationRepository;
-use Tracy;
 
 class Translator implements ITranslator
 {
@@ -121,7 +121,7 @@ class Translator implements ITranslator
 	
 	public function getUntranslatedCount(): int
 	{
-		return count($this->untranslated);
+		return \count($this->untranslated);
 	}
 	
 	public function addUntranslatedString(string $string): void
@@ -178,6 +178,5 @@ class Translator implements ITranslator
 		}
 		
 		return $translation->getValue('text', $mutation);
-		
 	}
 }
