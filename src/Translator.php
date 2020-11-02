@@ -151,7 +151,12 @@ class Translator implements ITranslator
 		
 		if ($this->cacheActive) {
 			$translation = $cache->load("$uuid-$mutation", function () use ($mutation, $uuid) {
-				return $this->getTranslation($uuid, $mutation);
+				$translation = $this->getTranslation($uuid, $mutation);
+				if ($translation === null) {
+					$translation = $uuid;
+					$this->addUntranslatedString($uuid);
+				}
+				return $translation;
 			});
 		} else {
 			$translation = $this->getTranslation($uuid, $mutation);
