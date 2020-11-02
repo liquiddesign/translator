@@ -156,6 +156,7 @@ class Translator implements ITranslator
 					$translation = $uuid;
 					$this->addUntranslatedString($uuid);
 				}
+				
 				return $translation;
 			});
 		} else {
