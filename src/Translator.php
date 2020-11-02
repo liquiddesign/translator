@@ -144,6 +144,9 @@ class Translator implements ITranslator
 	 */
 	public function translate($uuid, ...$parameters): string
 	{
+		if(!isset($uuid))
+			return '';
+		
 		$cache = $this->cache;
 		$arguments = \func_get_args();
 		
