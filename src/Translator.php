@@ -15,13 +15,6 @@ class Translator implements ITranslator
 {
 	private string $selectedMutation;
 	
-	/**
-	 * @var mixed[]
-	 */
-	private array $availableMutations;
-	
-	private string $defaultMutation;
-	
 	private bool $cacheActive = false;
 	
 	private bool $createMode = false;
@@ -39,42 +32,8 @@ class Translator implements ITranslator
 	{
 		$this->translationRepo = $translationRepo;
 		$this->cache = new Cache($storage, 'translator');
-		$this->setAvailableMutations($this->translationRepo->getConnection()->getAvailableMutations());
-		$this->setDefaultMutation($this->translationRepo->getConnection()->getMutation());
 		
 		Tracy\Debugger::getBar()->addPanel(new TranslatorTracy($this));
-	}
-	
-	public function setAvailableMutations(array $availableMutations): void
-	{
-		$this->availableMutations = $availableMutations;
-		
-		try {
-			$this->setDefaultMutation(\array_keys($availableMutations)[0]);
-		} catch (NotAvailableMutation $ignored) {
-		}
-	}
-	
-	/**
-	 * @param string $defaultMutation
-	 * @throws \Translator\NotAvailableMutation
-	 */
-	public function setDefaultMutation(string $defaultMutation): void
-	{
-		if (!isset($this->getAvailableMutations()[$defaultMutation])) {
-			throw new NotAvailableMutation();
-		}
-		
-		$this->defaultMutation = $defaultMutation;
-		$this->setMutation($defaultMutation);
-	}
-	
-	/**
-	 * @return mixed[]
-	 */
-	public function getAvailableMutations(): array
-	{
-		return $this->availableMutations;
 	}
 	
 	public function setCache(bool $cacheActive): void
@@ -89,7 +48,7 @@ class Translator implements ITranslator
 	
 	public function getMutation(): string
 	{
-		return $this->selectedMutation ?: $this->getDefaultMutation();
+		return $this->selectedMutation;
 	}
 	
 	/**
@@ -98,17 +57,11 @@ class Translator implements ITranslator
 	 */
 	public function setMutation(string $selectedMutation): void
 	{
-		if (!isset($this->getAvailableMutations()[$selectedMutation])) {
-			throw new NotAvailableMutation();
+		if (!$this->checkMutationAvailable($selectedMutation)) {
+			throw new \InvalidArgumentException("Mutation $selectedMutation is not available");
 		}
 		
 		$this->selectedMutation = $selectedMutation;
-		$this->translationRepo->getConnection()->setMutation($selectedMutation);
-	}
-	
-	public function getDefaultMutation(): string
-	{
-		return $this->defaultMutation;
 	}
 	
 	/**
@@ -135,7 +88,7 @@ class Translator implements ITranslator
 	
 	public function checkMutationAvailable($mutation): bool
 	{
-		return isset($this->getAvailableMutations()[$mutation]);
+		return isset($this->translationRepo->getConnection()->getAvailableMutations()[$mutation]);
 	}
 	
 	/**
@@ -170,7 +123,7 @@ class Translator implements ITranslator
 	
 	private function getTranslation(string $uuid, string $mutation): ?string
 	{
-		$translation = $this->translationRepo->one($uuid);
+		$translation = $this->translationRepo->one($uuid, false, null, $mutation);
 		
 		if ($translation === null) {
 			if ($this->createMode) {
