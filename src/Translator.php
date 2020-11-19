@@ -32,6 +32,7 @@ class Translator implements ITranslator
 	{
 		$this->translationRepo = $translationRepo;
 		$this->cache = new Cache($storage, 'translator');
+		$this->selectedMutation = $translationRepo->getConnection()->getMutation();
 		
 		Tracy\Debugger::getBar()->addPanel(new TranslatorTracy($this));
 	}
@@ -86,9 +87,17 @@ class Translator implements ITranslator
 		}
 	}
 	
+	/**
+	 * @return string[]
+	 */
+	public function getAvailableMutations(): array
+	{
+		return $this->translationRepo->getConnection()->getAvailableMutations();
+	}
+	
 	public function checkMutationAvailable($mutation): bool
 	{
-		return isset($this->translationRepo->getConnection()->getAvailableMutations()[$mutation]);
+		return isset($this->getAvailableMutations()[$mutation]);
 	}
 	
 	/**
