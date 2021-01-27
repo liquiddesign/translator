@@ -7,15 +7,17 @@ namespace Translator\Bridges;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
 use Translator\DB\TranslationRepository;
-use Translator\Translator;
 
 class TranslatorDI extends \Nette\DI\CompilerExtension
 {
 	public function getConfigSchema(): Schema
 	{
 		return Expect::structure([
-			'cache' => Expect::bool(true),
+			'defaultMutation' => Expect::bool('cs'),
+			'cache' => Expect::bool(false),
 			'createMode' => Expect::bool(false),
+			'scopeLabels' => Expect::arrayOf('string'),
+			'fallbacks' => Expect::arrayOf('string'),
 		]);
 	}
 	
@@ -26,11 +28,16 @@ class TranslatorDI extends \Nette\DI\CompilerExtension
 		/** @var \Nette\DI\ContainerBuilder $builder */
 		$builder = $this->getContainerBuilder();
 		
-		$builder->addDefinition($this->prefix('db'))->setType(TranslationRepository::class);
+		$service = $builder->addDefinition($this->prefix('translation'))->setType(TranslationRepository::class);
 		
-		$pages = $builder->addDefinition($this->prefix('main'))->setType(Translator::class);
+		$service->addSetup('setCache', [$config['cache']]);
+		$service->addSetup('setCreateMode', [$config['createMode']]);
+		$service->addSetup('setDefaultMutation', [$config['defaultMutation']]);
+		$service->addSetup('setScopeLabels', [$config['scopeLabels']]);
+		$service->addSetup('setFallbacks', [$config['fallbacks']]);
 		
-		$pages->addSetup('setCache', [$config['cache']]);
-		$pages->addSetup('setCreateMode', [$config['createMode']]);
+		$service->addSetup('@Tracy\Bar::addPanel', [
+			new \Nette\DI\Definitions\Statement(TranslatorTracy::class, []),
+		]);
 	}
 }

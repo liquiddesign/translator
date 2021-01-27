@@ -1,48 +1,23 @@
 <div class="tracy-inner tracy-InfoPanel">
     <div class="tracy-inner-container">
-        <h1>Available mutations</h1>
+        <h1>Global translations</h1>
         <table>
-            <thead>
-            <th>Name</th>
-            <th>Prefix</th>
-            </thead>
-            <tbody>
-			<?php foreach ($this->translator->getAvailableMutations() as $key => $value): ?>
-                <tr>
-					<?php if ($key == $this->translator->getMutation()): ?>
-                        <td>
-                            <b><?= $key ?></b>
-                        </td>
-                        <td>
-                            <b><?= $value ?></b>
-                        </td>
-					<?php else: ?>
-                        <td>
-                            <?= $key ?>
-                        </td>
-                        <td>
-                            <?= $value ?>
-                        </td>
-					<?php endif; ?>
-
-                </tr>
+			<?php foreach ($this->translator->getTranslations('') as $translation): ?>
+                <tr><th><?= $translation->label ?></th><td><?= $translation->getPK() ?></td></tr>
 			<?php endforeach ?>
-            </tbody>
         </table>
-    </div>
-    <div class="tracy-inner-container">
-        <h1>Untranslated</h1>
-        <h2>Total: <?= $this->translator->getUntranslatedCount() ?></h2>
+        <br>
+        <h1>Untranslated (<span style="color: red;"><?= \count($this->translator->getCurrentUntranslated()) ?></span>)</h1>
         <table>
             <thead>
-            <th>String</th>
-            <th>Count</th>
+            <th>Label</th>
+            <th>ID</th>
             </thead>
             <tbody>
-			<?php foreach ($this->translator->getUntranslated() as $key => $value): ?>
+			<?php foreach ($this->translator->getCurrentUntranslated() as $id => $label): ?>
                 <tr>
-                    <td><?= $key ?></td>
-                    <td><?= $value ?></td>
+                    <td><?= $label ?></td>
+                    <td><?= $id ?></td>
                 </tr>
 			<?php endforeach ?>
             </tbody>

@@ -4,7 +4,7 @@
     <rule ref="SlevomatCodingStandard.Files.TypeNameMatchesFileName">
         <properties>
             <property name="rootNamespaces" type="array">
-                <element key="src" value="Messages"/>
+                <element key="src" value="Translator"/>
             </property>
         </properties>
     </rule>

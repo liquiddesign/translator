@@ -3,13 +3,13 @@
 namespace Translator\Bridges;
 
 use Tracy\IBarPanel;
-use Translator\Translator;
+use Translator\DB\TranslationRepository;
 
 class TranslatorTracy implements IBarPanel
 {
-	private Translator $translator;
+	public TranslationRepository $translator;
 	
-	public function __construct(Translator $translator)
+	public function __construct(TranslationRepository $translator)
 	{
 		$this->translator = $translator;
 	}

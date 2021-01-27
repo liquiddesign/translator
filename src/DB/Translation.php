@@ -10,6 +10,11 @@ use StORM\Entity;
 class Translation extends Entity
 {
 	/**
+	 * @column
+	 */
+	public string $label;
+	
+	/**
 	 * @column{"mutations":true}
 	 */
 	public ?string $text;
