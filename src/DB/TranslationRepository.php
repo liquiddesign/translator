@@ -2,9 +2,13 @@
 
 namespace Translator\DB;
 
+use League\Csv\Reader;
+use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\IStorage;
 use Nette\Localization\Translator;
+use Nette\Utils\DateTime;
+use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Repository;
@@ -14,72 +18,72 @@ use Tracy\Debugger;
 class TranslationRepository extends Repository implements Translator
 {
 	private ?string $activeMutation = null;
-	
+
 	private string $defaultMutation = 'cs';
-	
+
 	private bool $cacheActive = false;
-	
+
 	private bool $createMode = false;
-	
+
 	/**
 	 * @var string[]
 	 */
 	private array $fallbacks = [];
-	
+
 	/**
 	 * @var string[]
 	 */
 	private array $currentUntranslated = [];
-	
+
 	/**
 	 * @var string[]
 	 */
 	private array $scopeLabels = [];
-	
+
 	/**
 	 * @var string[][]
 	 */
 	private array $scopeTranslations = [];
-	
+
 	private Cache $cache;
-	
+
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, IStorage $storage)
 	{
 		parent::__construct($connection, $schemaManager);
-		
+
 		$this->cache = new Cache($storage, 'translator');
 	}
-	
+
 	public function setCache(bool $cacheActive): void
 	{
 		$this->cacheActive = $cacheActive;
 	}
-	
+
 	public function setCreateMode(bool $createMode): void
 	{
 		$this->createMode = $createMode;
 	}
-	
+
 	public function setDefaultMutation(string $defaultMutation): void
 	{
 		$this->defaultMutation = $defaultMutation;
 	}
-	
+
 	public function setMutation(string $mutation): void
 	{
 		$this->activeMutation = $mutation;
 	}
-	
+
 	public function setScopeLabels(array $labels): void
 	{
 		$this->scopeLabels = $labels;
 	}
-	
+
 	public function setFallbacks(array $fallbacks): void
 	{
 		$this->fallbacks = $fallbacks;
 	}
-	
+
 	/**
 	 * @return string[]
 	 */
@@ -87,28 +91,28 @@ class TranslationRepository extends Repository implements Translator
 	{
 		return $this->scopeLabels;
 	}
-	
+
 	public function getMutation(): string
 	{
 		return $this->activeMutation ?: $this->connection->getMutation();
 	}
-	
+
 	public function getFallback(): ?string
 	{
 		return $this->fallbacks[$this->getMutation()] ?? null;
 	}
-	
+
 	public function getTranslations(?string $scope = null): Collection
 	{
 		$collection = $this->many($this->getMutation());
-		
+
 		if ($scope !== null) {
 			$collection->where('this.uuid LIKE :scope', ['scope' => "$scope.%"]);
 		}
-		
+
 		return $collection;
 	}
-	
+
 	/**
 	 * @return string[]
 	 */
@@ -116,23 +120,23 @@ class TranslationRepository extends Repository implements Translator
 	{
 		return $this->currentUntranslated;
 	}
-	
+
 	public function translate($message, ...$parameters): string
 	{
-		$parsedMessage = \explode('.', (string) $message);
-		
+		$parsedMessage = \explode('.', (string)$message);
+
 		if (!isset($parameters[0])) {
 			\trigger_error("Label of SCOPE and ID '$message' is not set", \E_USER_WARNING);
 		}
-		
+
 		if (\count($parsedMessage) !== 2) {
 			\trigger_error("Use exactly one '.' in to separate SCOPE and ID. Message '$message' given.", \E_USER_WARNING);
 		}
-		
-		$defaultMessage = (string) $parameters[0];
+
+		$defaultMessage = (string)$parameters[0];
 		$vars = $parameters[1] ?? [];
 		[$scope, $id] = $parsedMessage;
-		
+
 		if ($this->cacheActive) {
 			$this->scopeTranslations[$scope] ??= $this->cache->load("$scope.$id." . $this->getMutation(), function () use ($scope) {
 				return $this->getScopeTranslations($scope);
@@ -140,20 +144,20 @@ class TranslationRepository extends Repository implements Translator
 		} else {
 			$this->scopeTranslations[$scope] ??= $this->getScopeTranslations($scope);
 		}
-		
+
 		if (!isset($this->scopeTranslations[$scope][$message])) {
 			if (Debugger::$showBar) {
 				$this->currentUntranslated["$scope.$id"] = $defaultMessage;
 			}
-			
+
 			if ($this->createMode) {
 				$this->saveTranslation($scope, $id, $defaultMessage);
 			}
 		}
-		
+
 		return \vsprintf($this->scopeTranslations[$scope][$message] ?? $this->getEmptyMessage($id, $defaultMessage), $vars);
 	}
-	
+
 	/**
 	 * @param string $scope
 	 * @return string[]
@@ -164,14 +168,14 @@ class TranslationRepository extends Repository implements Translator
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$this->getMutation()];
 		$collection = $this->getTranslations($scope);
 		$fallbackSuffix = $fallback ? ($this->getConnection()->getAvailableMutations()[$fallback] ?? null) : null;
-		
+
 		if ($fallbackSuffix) {
 			$collection->select(['text' => "IF(text$mutationSuffix IS NULL, text$fallbackSuffix, text$mutationSuffix)"]);
 		}
-		
+
 		return $collection->toArrayOf('text');
 	}
-	
+
 	private function saveTranslation(string $scope, string $id, string $defaultMessage): Translation
 	{
 		/** @var \Translator\DB\Translation $translation */
@@ -180,12 +184,120 @@ class TranslationRepository extends Repository implements Translator
 			'label' => $defaultMessage,
 			'text' => [$this->defaultMutation => $defaultMessage],
 		], ['label']);
-		
+
 		return $translation;
 	}
-	
+
 	private function getEmptyMessage(string $id, $defaultMessage): string
 	{
-		return $this->defaultMutation !== $this->getMutation() ? '░'.$id.'░' : $defaultMessage;
+		return $this->defaultMutation !== $this->getMutation() ? '░' . $id . '░' : $defaultMessage;
+	}
+
+	public function createTranslationsSnapshot(string $backupDir, string $dateTimeFormat = 'Y-m-d_H-i-s'): void
+	{
+		$mutations = $this->getConnection()->getAvailableMutations();
+
+		\Nette\Utils\FileSystem::createDir($backupDir);
+
+		$backupFilename = $backupDir . \DIRECTORY_SEPARATOR . (new DateTime())->format($dateTimeFormat) . '.csv';
+
+		$writer = Writer::createFromPath($backupFilename, 'w+');
+		$writer->setDelimiter(';');
+
+		/** @var \Translator\DB\Translation[] $translations */
+		$translations = $this->many()->orderBy(['uuid']);
+
+		$header = [
+			'uuid',
+			'label',
+		];
+
+		foreach ($mutations as $key => $value) {
+			$header[] = "text_$key";
+		}
+
+		$writer->insertOne($header);
+
+		foreach ($translations as $translation) {
+			$row = [
+				$translation->getPK(),
+				$translation->label,
+			];
+
+			foreach ($mutations as $key => $value) {
+				$row[] = $translation->getValue('text', $key);
+			}
+
+			$writer->insertOne($row);
+		}
+	}
+
+	public function importTranslationsFromString(string $translationString): void
+	{
+		$this->importTranslationsFromReader(Reader::createFromString($translationString));
+	}
+
+	public function importTranslationsFromFile(string $filename): void
+	{
+		$this->importTranslationsFromReader(Reader::createFromPath($filename));
+	}
+
+	public function importTranslationsFromReader(Reader $reader): void
+	{
+		$reader->setDelimiter(';');
+		$reader->setHeaderOffset(0);
+
+		$mutationsInFile = \preg_grep('/^text_(\w+)/', $reader->getHeader());
+
+		foreach ($mutationsInFile as $key => $value) {
+			$mutationsInFile[$key] = \substr($value, \strpos($value, '_', 0) + 1);
+		}
+
+		foreach ($reader->getRecords() as $key => $value) {
+			unset($value['reference']);
+
+			foreach ($mutationsInFile as $mutationK => $mutationV) {
+				$value['text'][$mutationV] = $value['text_' . $mutationV];
+				unset($value['text_' . $mutationV]);
+			}
+
+			$this->syncOne($value);
+		}
+	}
+
+	public function exportTranslationsCsv(string $tempFilename, $values)
+	{
+		$writer = Writer::createFromPath($tempFilename, 'w+');
+		$writer->setDelimiter(';');
+		$writer->setOutputBOM(Writer::BOM_UTF8);
+
+		/** @var \Translator\DB\Translation[] $translations */
+		$translations = $this->many()->orderBy([$this->getStructure()->getPK()->getName()]);
+
+		$header = [
+			'uuid',
+			'label',
+			'reference',
+		];
+
+		foreach ($values['exportMutations'] as $key => $value) {
+			$header[] = "text_$value";
+		}
+
+		$writer->insertOne($header);
+
+		foreach ($translations as $translation) {
+			$row = [
+				$translation->getPK(),
+				$translation->label,
+				$translation->getValue('text', $values['referenceMutation'])
+			];
+
+			foreach ($values['exportMutations'] as $key => $value) {
+				$row[] = $translation->getValue('text', $value);
+			}
+
+			$writer->insertOne($row);
+		}
 	}
 }

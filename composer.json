@@ -18,7 +18,8 @@
         "latte/latte":"~2.0",
         "tracy/tracy":"*",
         "liquiddesign/storm": "@dev",
-        "ext-pdo": "*"
+        "ext-pdo": "*",
+        "league/csv": "^9.0"
     },
     "require-dev":
     {
