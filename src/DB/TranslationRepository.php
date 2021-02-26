@@ -193,56 +193,25 @@ class TranslationRepository extends Repository implements Translator
 		return $this->defaultMutation !== $this->getMutation() ? '░' . $id . '░' : $defaultMessage;
 	}
 
-	public function createTranslationsSnapshot(string $backupDir, string $dateTimeFormat = 'Y-m-d_H-i-s'): void
+	public function createTranslationsSnapshot(string $backupDir, array $mutations = [], string $dateTimeFormat = 'Y-m-d_H-i-s'): void
 	{
-		$mutations = $this->getConnection()->getAvailableMutations();
-
 		\Nette\Utils\FileSystem::createDir($backupDir);
-
 		$backupFilename = $backupDir . \DIRECTORY_SEPARATOR . (new DateTime())->format($dateTimeFormat) . '.csv';
 
-		$writer = Writer::createFromPath($backupFilename, 'w+');
-		$writer->setDelimiter(';');
-
-		/** @var \Translator\DB\Translation[] $translations */
-		$translations = $this->many()->orderBy(['uuid']);
-
-		$header = [
-			'uuid',
-			'label',
-		];
-
-		foreach ($mutations as $key => $value) {
-			$header[] = "text_$key";
-		}
-
-		$writer->insertOne($header);
-
-		foreach ($translations as $translation) {
-			$row = [
-				$translation->getPK(),
-				$translation->label,
-			];
-
-			foreach ($mutations as $key => $value) {
-				$row[] = $translation->getValue('text', $key);
-			}
-
-			$writer->insertOne($row);
-		}
+		$this->exportTranslationsCsv($backupFilename, $mutations);
 	}
 
-	public function importTranslationsFromString(string $translationString): void
+	public function importTranslationsFromString(string $translationString, array $availableMutations): void
 	{
-		$this->importTranslationsFromReader(Reader::createFromString($translationString));
+		$this->importTranslationsFromReader(Reader::createFromString($translationString), $availableMutations);
 	}
 
-	public function importTranslationsFromFile(string $filename): void
+	public function importTranslationsFromFile(string $filename, array $availableMutations): void
 	{
-		$this->importTranslationsFromReader(Reader::createFromPath($filename));
+		$this->importTranslationsFromReader(Reader::createFromPath($filename), $availableMutations);
 	}
 
-	public function importTranslationsFromReader(Reader $reader): void
+	public function importTranslationsFromReader(Reader $reader, array $availableMutations): void
 	{
 		$reader->setDelimiter(';');
 		$reader->setHeaderOffset(0);
@@ -250,22 +219,31 @@ class TranslationRepository extends Repository implements Translator
 		$mutationsInFile = \preg_grep('/^text_(\w+)/', $reader->getHeader());
 
 		foreach ($mutationsInFile as $key => $value) {
-			$mutationsInFile[$key] = \substr($value, \strpos($value, '_', 0) + 1);
+			$mutation = \substr($value, \strpos($value, '_', 0) + 1);
+
+			if (!\in_array($mutation, $availableMutations)) {
+				unset($mutationsInFile[$key]);
+				continue;
+			}
+
+			$mutationsInFile[$key] = $mutation;
 		}
 
 		foreach ($reader->getRecords() as $key => $value) {
-			unset($value['reference']);
+			$newValue = [
+				'uuid' => $value['uuid'],
+				'label' => $value['label']
+			];
 
 			foreach ($mutationsInFile as $mutationK => $mutationV) {
-				$value['text'][$mutationV] = $value['text_' . $mutationV];
-				unset($value['text_' . $mutationV]);
+				$newValue['text'][$mutationV] = $value['text_' . $mutationV];
 			}
 
-			$this->syncOne($value);
+			$this->syncOne($newValue);
 		}
 	}
 
-	public function exportTranslationsCsv(string $tempFilename, $values)
+	public function exportTranslationsCsv(string $tempFilename, array $mutationsToExport = [])
 	{
 		$writer = Writer::createFromPath($tempFilename, 'w+');
 		$writer->setDelimiter(';');
@@ -277,10 +255,9 @@ class TranslationRepository extends Repository implements Translator
 		$header = [
 			'uuid',
 			'label',
-			'reference',
 		];
 
-		foreach ($values['exportMutations'] as $key => $value) {
+		foreach ($mutationsToExport as $key => $value) {
 			$header[] = "text_$value";
 		}
 
@@ -290,10 +267,9 @@ class TranslationRepository extends Repository implements Translator
 			$row = [
 				$translation->getPK(),
 				$translation->label,
-				$translation->getValue('text', $values['referenceMutation'])
 			];
 
-			foreach ($values['exportMutations'] as $key => $value) {
+			foreach ($mutationsToExport as $key => $value) {
 				$row[] = $translation->getValue('text', $value);
 			}
 
