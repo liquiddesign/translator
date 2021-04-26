@@ -10,6 +10,12 @@ use StORM\Entity;
 class Translation extends Entity
 {
 	/**
+	 * @column{"type":"varchar","length":64}
+	 * @pk
+	 */
+	public string $uuid;
+	
+	/**
 	 * @column{"type":"longtext"}
 	 */
 	public string $label;
