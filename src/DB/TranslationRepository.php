@@ -236,7 +236,7 @@ class TranslationRepository extends Repository implements Translator
 			];
 
 			foreach ($mutationsInFile as $mutationK => $mutationV) {
-				$newValue['text'][$mutationV] = $value['text_' . $mutationV];
+				$newValue['text'][$mutationV] = $value['text_' . $mutationV] ?: null;
 			}
 
 			$this->syncOne($newValue);
