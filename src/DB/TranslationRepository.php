@@ -130,7 +130,8 @@ class TranslationRepository extends Repository implements Translator
 		}
 
 		if (\count($parsedMessage) !== 2) {
-			\trigger_error("Use exactly one '.' in to separate SCOPE and ID. Message '$message' given.", \E_USER_WARNING);
+			\trigger_error("Use exactly one '.' in to separate SCOPE and ID. Message '$message' given.",
+				\E_USER_WARNING);
 		}
 
 		$defaultMessage = (string)$parameters[0];
@@ -138,9 +139,10 @@ class TranslationRepository extends Repository implements Translator
 		[$scope, $id] = $parsedMessage;
 
 		if ($this->cacheActive) {
-			$this->scopeTranslations[$scope] ??= $this->cache->load("$scope.$id." . $this->getMutation(), function () use ($scope) {
-				return $this->getScopeTranslations($scope);
-			});
+			$this->scopeTranslations[$scope] ??= $this->cache->load("$scope.$id." . $this->getMutation(),
+				function () use ($scope) {
+					return $this->getScopeTranslations($scope);
+				});
 		} else {
 			$this->scopeTranslations[$scope] ??= $this->getScopeTranslations($scope);
 		}
@@ -155,7 +157,8 @@ class TranslationRepository extends Repository implements Translator
 			}
 		}
 
-		return \vsprintf($this->scopeTranslations[$scope][$message] ?? $this->getEmptyMessage($id, $defaultMessage), $vars);
+		return \vsprintf($this->scopeTranslations[$scope][$message] ?? $this->getEmptyMessage($id, $defaultMessage),
+			$vars);
 	}
 
 	/**
@@ -193,8 +196,11 @@ class TranslationRepository extends Repository implements Translator
 		return $this->defaultMutation !== $this->getMutation() ? '░' . $id . '░' : $defaultMessage;
 	}
 
-	public function createTranslationsSnapshot(string $backupDir, array $mutations = [], string $dateTimeFormat = 'Y-m-d_H-i-s'): void
-	{
+	public function createTranslationsSnapshot(
+		string $backupDir,
+		array $mutations = [],
+		string $dateTimeFormat = 'Y-m-d_H-i-s'
+	): void {
 		\Nette\Utils\FileSystem::createDir($backupDir);
 		$backupFilename = $backupDir . \DIRECTORY_SEPARATOR . (new DateTime())->format($dateTimeFormat) . '.csv';
 
@@ -232,8 +238,11 @@ class TranslationRepository extends Repository implements Translator
 		foreach ($reader->getRecords() as $key => $value) {
 			$newValue = [
 				'uuid' => $value['uuid'],
-				'label' => $value['label']
 			];
+
+			if (isset($value['label'])) {
+				$newValue['label'] = $value['label'];
+			}
 
 			foreach ($mutationsInFile as $mutationK => $mutationV) {
 				$newValue['text'][$mutationV] = $value['text_' . $mutationV] ?: null;
