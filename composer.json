@@ -17,7 +17,7 @@
         "nette/di":"~3.0",
         "latte/latte":"~2.0",
         "tracy/tracy":"*",
-        "liquiddesign/storm": "@dev",
+        "liquiddesign/storm": "~1.0",
         "ext-pdo": "*",
         "league/csv": "^9.0"
     },
