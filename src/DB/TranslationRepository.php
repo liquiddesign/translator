@@ -8,13 +8,16 @@ use Nette\Caching\Cache;
 use Nette\Caching\IStorage;
 use Nette\Localization\Translator;
 use Nette\Utils\DateTime;
-use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Repository;
 use StORM\SchemaManager;
 use Tracy\Debugger;
 
+/**
+ * Class TranslationRepository
+ * @extends \StORM\Repository<\Translator\DB\Translation>
+ */
 class TranslationRepository extends Repository implements Translator
 {
 	private ?string $activeMutation = null;
@@ -130,8 +133,10 @@ class TranslationRepository extends Repository implements Translator
 		}
 
 		if (\count($parsedMessage) !== 2) {
-			\trigger_error("Use exactly one '.' in to separate SCOPE and ID. Message '$message' given.",
-				\E_USER_WARNING);
+			\trigger_error(
+				"Use exactly one '.' in to separate SCOPE and ID. Message '$message' given.",
+				\E_USER_WARNING,
+			);
 		}
 
 		$defaultMessage = (string)$parameters[0];
@@ -139,10 +144,12 @@ class TranslationRepository extends Repository implements Translator
 		[$scope, $id] = $parsedMessage;
 
 		if ($this->cacheActive) {
-			$this->scopeTranslations[$scope] ??= $this->cache->load("$scope.$id." . $this->getMutation(),
+			$this->scopeTranslations[$scope] ??= $this->cache->load(
+				"$scope.$id." . $this->getMutation(),
 				function () use ($scope) {
 					return $this->getScopeTranslations($scope);
-				});
+				},
+			);
 		} else {
 			$this->scopeTranslations[$scope] ??= $this->getScopeTranslations($scope);
 		}
@@ -157,43 +164,10 @@ class TranslationRepository extends Repository implements Translator
 			}
 		}
 
-		return \vsprintf($this->scopeTranslations[$scope][$message] ?? $this->getEmptyMessage($id, $defaultMessage),
-			$vars);
-	}
-
-	/**
-	 * @param string $scope
-	 * @return string[]
-	 */
-	private function getScopeTranslations(string $scope): array
-	{
-		$fallback = $this->getFallback();
-		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$this->getMutation()];
-		$collection = $this->getTranslations($scope);
-		$fallbackSuffix = $fallback ? ($this->getConnection()->getAvailableMutations()[$fallback] ?? null) : null;
-
-		if ($fallbackSuffix) {
-			$collection->select(['text' => "IF(text$mutationSuffix IS NULL, text$fallbackSuffix, text$mutationSuffix)"]);
-		}
-
-		return $collection->toArrayOf('text');
-	}
-
-	private function saveTranslation(string $scope, string $id, string $defaultMessage): Translation
-	{
-		/** @var \Translator\DB\Translation $translation */
-		$translation = $this->syncOne([
-			'uuid' => $scope . '.' . $id,
-			'label' => $defaultMessage,
-			'text' => [$this->defaultMutation => $defaultMessage],
-		], ['label']);
-
-		return $translation;
-	}
-
-	private function getEmptyMessage(string $id, $defaultMessage): string
-	{
-		return $this->defaultMutation !== $this->getMutation() ? '░' . $id . '░' : $defaultMessage;
+		return \vsprintf(
+			$this->scopeTranslations[$scope][$message] ?? $this->getEmptyMessage($id, $defaultMessage),
+			$vars,
+		);
 	}
 
 	public function createTranslationsSnapshot(
@@ -229,13 +203,14 @@ class TranslationRepository extends Repository implements Translator
 
 			if (!\in_array($mutation, $availableMutations)) {
 				unset($mutationsInFile[$key]);
+
 				continue;
 			}
 
 			$mutationsInFile[$key] = $mutation;
 		}
 
-		foreach ($reader->getRecords() as $key => $value) {
+		foreach ($reader->getRecords() as $value) {
 			$newValue = [
 				'uuid' => $value['uuid'],
 			];
@@ -244,7 +219,7 @@ class TranslationRepository extends Repository implements Translator
 				$newValue['label'] = $value['label'];
 			}
 
-			foreach ($mutationsInFile as $mutationK => $mutationV) {
+			foreach ($mutationsInFile as $mutationV) {
 				$newValue['text'][$mutationV] = $value['text_' . $mutationV] ?: null;
 			}
 
@@ -252,13 +227,12 @@ class TranslationRepository extends Repository implements Translator
 		}
 	}
 
-	public function exportTranslationsCsv(string $tempFilename, array $mutationsToExport = [])
+	public function exportTranslationsCsv(string $tempFilename, array $mutationsToExport = []): void
 	{
 		$writer = Writer::createFromPath($tempFilename, 'w+');
 		$writer->setDelimiter(';');
 		$writer->setOutputBOM(Writer::BOM_UTF8);
 
-		/** @var \Translator\DB\Translation[] $translations */
 		$translations = $this->many()->orderBy([$this->getStructure()->getPK()->getName()]);
 
 		$header = [
@@ -266,23 +240,56 @@ class TranslationRepository extends Repository implements Translator
 			'label',
 		];
 
-		foreach ($mutationsToExport as $key => $value) {
+		foreach ($mutationsToExport as $value) {
 			$header[] = "text_$value";
 		}
 
 		$writer->insertOne($header);
-
+		
 		foreach ($translations as $translation) {
 			$row = [
 				$translation->getPK(),
+				/** @phpstan-ignore-next-line */
 				$translation->label,
 			];
 
-			foreach ($mutationsToExport as $key => $value) {
+			foreach ($mutationsToExport as $value) {
 				$row[] = $translation->getValue('text', $value);
 			}
 
 			$writer->insertOne($row);
 		}
+	}
+
+	/**
+	 * @param string $scope
+	 * @return string[]
+	 */
+	private function getScopeTranslations(string $scope): array
+	{
+		$fallback = $this->getFallback();
+		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$this->getMutation()];
+		$collection = $this->getTranslations($scope);
+		$fallbackSuffix = $fallback ? ($this->getConnection()->getAvailableMutations()[$fallback] ?? null) : null;
+
+		if ($fallbackSuffix) {
+			$collection->select(['text' => "IF(text$mutationSuffix IS NULL, text$fallbackSuffix, text$mutationSuffix)"]);
+		}
+
+		return $collection->toArrayOf('text');
+	}
+
+	private function saveTranslation(string $scope, string $id, string $defaultMessage): Translation
+	{
+		return $this->syncOne([
+			'uuid' => $scope . '.' . $id,
+			'label' => $defaultMessage,
+			'text' => [$this->defaultMutation => $defaultMessage],
+		], ['label']);
+	}
+
+	private function getEmptyMessage(string $id, $defaultMessage): string
+	{
+		return $this->defaultMutation !== $this->getMutation() ? '░' . $id . '░' : $defaultMessage;
 	}
 }
