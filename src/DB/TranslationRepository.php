@@ -7,7 +7,8 @@ use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\IStorage;
 use Nette\Localization\Translator;
-use Nette\Utils\DateTime;
+use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Repository;
@@ -29,22 +30,22 @@ class TranslationRepository extends Repository implements Translator
 	private bool $createMode = false;
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $fallbacks = [];
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $currentUntranslated = [];
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $scopeLabels = [];
 
 	/**
-	 * @var string[][]
+	 * @var array<array<string>>
 	 */
 	private array $scopeTranslations = [];
 
@@ -88,7 +89,7 @@ class TranslationRepository extends Repository implements Translator
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getScopeLabels(): array
 	{
@@ -117,7 +118,7 @@ class TranslationRepository extends Repository implements Translator
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getCurrentUntranslated(): array
 	{
@@ -126,7 +127,7 @@ class TranslationRepository extends Repository implements Translator
 
 	public function translate($message, ...$parameters): string
 	{
-		$parsedMessage = \explode('.', (string)$message);
+		$parsedMessage = \explode('.', (string) $message);
 
 		if (!isset($parameters[0])) {
 			\trigger_error("Label of SCOPE and ID '$message' is not set", \E_USER_WARNING);
@@ -139,7 +140,7 @@ class TranslationRepository extends Repository implements Translator
 			);
 		}
 
-		$defaultMessage = (string)$parameters[0];
+		$defaultMessage = (string) $parameters[0];
 		$vars = $parameters[1] ?? [];
 		[$scope, $id] = $parsedMessage;
 
@@ -176,7 +177,7 @@ class TranslationRepository extends Repository implements Translator
 		string $dateTimeFormat = 'Y-m-d_H-i-s'
 	): void {
 		\Nette\Utils\FileSystem::createDir($backupDir);
-		$backupFilename = $backupDir . \DIRECTORY_SEPARATOR . (new DateTime())->format($dateTimeFormat) . '.csv';
+		$backupFilename = $backupDir . \DIRECTORY_SEPARATOR . (new \Carbon\Carbon())->format($dateTimeFormat) . '.csv';
 
 		$this->exportTranslationsCsv($backupFilename, $mutations);
 	}
@@ -199,9 +200,9 @@ class TranslationRepository extends Repository implements Translator
 		$mutationsInFile = \preg_grep('/^text_(\w+)/', $reader->getHeader());
 
 		foreach ($mutationsInFile as $key => $value) {
-			$mutation = \substr($value, \strpos($value, '_', 0) + 1);
-
-			if (!\in_array($mutation, $availableMutations)) {
+			$mutation = Strings::substring($value, Strings::indexOf($value, '_') + 1);
+			
+			if (!Arrays::contains($availableMutations, $mutation)) {
 				unset($mutationsInFile[$key]);
 
 				continue;
@@ -249,7 +250,6 @@ class TranslationRepository extends Repository implements Translator
 		foreach ($translations as $translation) {
 			$row = [
 				$translation->getPK(),
-				/** @phpstan-ignore-next-line */
 				$translation->label,
 			];
 
@@ -263,7 +263,7 @@ class TranslationRepository extends Repository implements Translator
 
 	/**
 	 * @param string $scope
-	 * @return string[]
+	 * @return array<string>
 	 */
 	private function getScopeTranslations(string $scope): array
 	{

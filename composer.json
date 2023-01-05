@@ -15,11 +15,12 @@
         "nette/application": "~3.0",
         "nette/utils":"~3.0",
         "nette/di":"~3.0",
-        "latte/latte":"~2.0",
+        "latte/latte":"~2.0 || ~3.0",
         "tracy/tracy":"*",
         "liquiddesign/storm": "~1.0",
         "ext-pdo": "*",
-        "league/csv": "^9.0"
+        "league/csv": "^9.0",
+        "nesbot/carbon": "^2.0"
     },
     "require-dev":
     {
@@ -37,5 +38,10 @@
         "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
         "aux-sync-database": "Migrator\\Scripts::syncDatabase",
         "sync-database": "@aux-sync-database Translator\\Tests\\Bootstrap"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }
