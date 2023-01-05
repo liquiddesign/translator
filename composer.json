@@ -25,7 +25,6 @@
     "require-dev":
     {
         "nette/tester":"*",
-        "tracy/tracy":"*",
         "composer/composer": "*",
         "liquiddesign/codestyle": "@dev",
         "liquiddesign/migrator": "@dev",
