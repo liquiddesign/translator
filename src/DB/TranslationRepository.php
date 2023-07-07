@@ -202,7 +202,7 @@ class TranslationRepository extends Repository implements Translator
 		foreach ($mutationsInFile as $key => $value) {
 			$mutation = Strings::substring($value, Strings::indexOf($value, '_') + 1);
 			
-			if (!Arrays::contains($availableMutations, $mutation)) {
+			if (!\count($availableMutations) || !Arrays::contains($availableMutations, $mutation)) {
 				unset($mutationsInFile[$key]);
 
 				continue;
