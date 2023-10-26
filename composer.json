@@ -11,29 +11,34 @@
         "psr-4": { "Translator\\Tests\\": "tests/" }
     },
     "require": {
-        "php": ">=7.4",
+        "php": ">=8.2",
         "nette/application": "~3.0",
         "nette/utils":"~3.0",
         "nette/di":"~3.0",
-        "latte/latte":"~2.0 || ~3.0",
+        "latte/latte":"~3.0",
         "tracy/tracy":"*",
         "liquiddesign/storm": "~1.0",
+        "liquiddesign/base": "~2.0",
         "ext-pdo": "*",
         "league/csv": "^9.0",
         "nesbot/carbon": "^2.0"
     },
     "require-dev":
     {
-        "nette/tester":"*",
-        "composer/composer": "*",
-        "liquiddesign/codestyle": "@dev",
-        "liquiddesign/migrator": "@dev",
-        "phpstan/phpstan": "*"
+        "nette/tester":"^2.5",
+        "liquiddesign/codestyle": "^3.0",
+        "liquiddesign/migrator": "^1.0",
+        "phpstan/phpstan": "^1.10"
     },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "scripts": {
+        "fix-code": ["@phpcsfix"],
+        "code-style": ["@phpcsfix", "@phpcs"],
+        "check-code": ["@phpcs", "@phpstan"],
         "phpstan": "phpstan analyse --memory-limit 1G -c phpstan.neon",
-        "phpcs": "phpcs --standard=ruleset.xml --ignore=assets src",
-        "phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets src",
+        "phpcs": "phpcs --cache --standard=ruleset.xml --ignore=assets src",
+        "phpcsfix": "phpcbf --cache --standard=ruleset.xml --ignore=assets src",
         "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
         "aux-sync-database": "Migrator\\Scripts::syncDatabase",
         "sync-database": "@aux-sync-database Translator\\Tests\\Bootstrap"

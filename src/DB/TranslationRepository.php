@@ -78,11 +78,17 @@ class TranslationRepository extends Repository implements Translator
 		$this->activeMutation = $mutation;
 	}
 
+	/**
+	 * @param array<string> $labels
+	 */
 	public function setScopeLabels(array $labels): void
 	{
 		$this->scopeLabels = $labels;
 	}
 
+	/**
+	 * @param array<string> $fallbacks
+	 */
 	public function setFallbacks(array $fallbacks): void
 	{
 		$this->fallbacks = $fallbacks;
@@ -106,6 +112,10 @@ class TranslationRepository extends Repository implements Translator
 		return $this->fallbacks[$this->getMutation()] ?? null;
 	}
 
+	/**
+	 * @param string|null $scope
+	 * @return \StORM\Collection<\Translator\DB\Translation>
+	 */
 	public function getTranslations(?string $scope = null): Collection
 	{
 		$collection = $this->many($this->getMutation());
@@ -171,6 +181,15 @@ class TranslationRepository extends Repository implements Translator
 		);
 	}
 
+	/**
+	 * @param string $backupDir
+	 * @param array<string> $mutations
+	 * @param string $dateTimeFormat
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \League\Csv\UnavailableStream
+	 */
 	public function createTranslationsSnapshot(
 		string $backupDir,
 		array $mutations = [],
@@ -182,22 +201,44 @@ class TranslationRepository extends Repository implements Translator
 		$this->exportTranslationsCsv($backupFilename, $mutations);
 	}
 
+	/**
+	 * @param string $translationString
+	 * @param array<string> $availableMutations
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function importTranslationsFromString(string $translationString, array $availableMutations): void
 	{
 		$this->importTranslationsFromReader(Reader::createFromString($translationString), $availableMutations);
 	}
 
+	/**
+	 * @param string $filename
+	 * @param array<string> $availableMutations
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \League\Csv\UnavailableStream
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function importTranslationsFromFile(string $filename, array $availableMutations): void
 	{
 		$this->importTranslationsFromReader(Reader::createFromPath($filename), $availableMutations);
 	}
 
+	/**
+	 * @param \League\Csv\Reader $reader
+	 * @param array<string> $availableMutations
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function importTranslationsFromReader(Reader $reader, array $availableMutations): void
 	{
 		$reader->setDelimiter(';');
 		$reader->setHeaderOffset(0);
 
-		$mutationsInFile = \preg_grep('/^text_(\w+)/', $reader->getHeader());
+		$mutationsInFile = \preg_grep('/^text_(\w+)/', $reader->getHeader()) ?: [];
 
 		foreach ($mutationsInFile as $key => $value) {
 			$mutation = Strings::substring($value, Strings::indexOf($value, '_') + 1);
@@ -228,6 +269,14 @@ class TranslationRepository extends Repository implements Translator
 		}
 	}
 
+	/**
+	 * @param string $tempFilename
+	 * @param array<string> $mutationsToExport
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \League\Csv\UnavailableStream
+	 */
 	public function exportTranslationsCsv(string $tempFilename, array $mutationsToExport = []): void
 	{
 		$writer = Writer::createFromPath($tempFilename, 'w+');
@@ -288,7 +337,7 @@ class TranslationRepository extends Repository implements Translator
 		], ['label']);
 	}
 
-	private function getEmptyMessage(string $id, $defaultMessage): string
+	private function getEmptyMessage(string $id, string $defaultMessage): string
 	{
 		return $this->defaultMutation !== $this->getMutation() ? '░' . $id . '░' : $defaultMessage;
 	}

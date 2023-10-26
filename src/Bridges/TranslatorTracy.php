@@ -7,18 +7,15 @@ use Translator\DB\TranslationRepository;
 
 class TranslatorTracy implements IBarPanel
 {
-	public TranslationRepository $translator;
-	
-	public function __construct(TranslationRepository $translator)
+	public function __construct(protected readonly TranslationRepository $translator)
 	{
-		$this->translator = $translator;
 	}
 	
 	/**
 	 * Renders HTML code for storm panel
 	 * @throws \Throwable
 	 */
-	public function getTab(): string
+	public function getTab(): string|false
 	{
 		return self::capture(function (): void { // @codingStandardsIgnoreLine
 			require __DIR__ . '/templates/Storm.panel.tab.phtml';
@@ -31,7 +28,7 @@ class TranslatorTracy implements IBarPanel
 	 * Get Storm panel
 	 * @throws \Throwable
 	 */
-	public function getPanel(): string
+	public function getPanel(): string|false
 	{
 		return self::capture(function (): void {  // @codingStandardsIgnoreLine
 			require __DIR__ . '/templates/Storm.panel.phtml';
@@ -45,7 +42,7 @@ class TranslatorTracy implements IBarPanel
 	 * @param callable $func
 	 * @throws \Throwable
 	 */
-	public static function capture(callable $func): string
+	public static function capture(callable $func): string|false
 	{
 		\ob_start();
 		
