@@ -1,0 +1,1 @@
+UPDATE translator_translation SET code = uuid;

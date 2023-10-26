@@ -2,10 +2,11 @@
 
 namespace Translator\DB;
 
+use Base\ShopsConfig;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Caching\Cache;
-use Nette\Caching\IStorage;
+use Nette\Caching\Storage;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
@@ -51,7 +52,7 @@ class TranslationRepository extends Repository implements Translator
 
 	private Cache $cache;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, IStorage $storage)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, protected readonly ShopsConfig $shopsConfig)
 	{
 		parent::__construct($connection, $schemaManager);
 
@@ -116,12 +117,16 @@ class TranslationRepository extends Repository implements Translator
 	 * @param string|null $scope
 	 * @return \StORM\Collection<\Translator\DB\Translation>
 	 */
-	public function getTranslations(?string $scope = null): Collection
+	public function getTranslations(?string $scope = null, bool $filterShops = true): Collection
 	{
 		$collection = $this->many($this->getMutation());
 
 		if ($scope !== null) {
-			$collection->where('this.uuid LIKE :scope', ['scope' => "$scope.%"]);
+			$collection->where('this.uuid LIKE :scope OR code LIKE :scope', ['scope' => "$scope.%"]);
+		}
+
+		if ($filterShops) {
+			$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 		}
 
 		return $collection;
@@ -287,7 +292,9 @@ class TranslationRepository extends Repository implements Translator
 
 		$header = [
 			'uuid',
+			'code',
 			'label',
+			'shop',
 		];
 
 		foreach ($mutationsToExport as $value) {
@@ -299,7 +306,9 @@ class TranslationRepository extends Repository implements Translator
 		foreach ($translations as $translation) {
 			$row = [
 				$translation->getPK(),
+				$translation->code,
 				$translation->label,
+				$translation->getValue('shop'),
 			];
 
 			foreach ($mutationsToExport as $value) {
@@ -325,15 +334,16 @@ class TranslationRepository extends Repository implements Translator
 			$collection->select(['text' => "IF(text$mutationSuffix IS NULL, text$fallbackSuffix, text$mutationSuffix)"]);
 		}
 
-		return $collection->toArrayOf('text');
+		return $collection->setIndex('IF(LENGTH(this.code) > 0, this.code, this.uuid)')->toArrayOf('text');
 	}
 
 	private function saveTranslation(string $scope, string $id, string $defaultMessage): Translation
 	{
 		return $this->syncOne([
-			'uuid' => $scope . '.' . $id,
+			'code' => $scope . '.' . $id,
 			'label' => $defaultMessage,
 			'text' => [$this->defaultMutation => $defaultMessage],
+			'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 		], ['label']);
 	}
 
