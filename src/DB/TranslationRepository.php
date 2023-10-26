@@ -161,7 +161,7 @@ class TranslationRepository extends Repository implements Translator
 
 		if ($this->cacheActive) {
 			$this->scopeTranslations[$scope] ??= $this->cache->load(
-				"$scope.$id." . $this->getMutation(),
+				"$scope.$id." . $this->getMutation() . $this->shopsConfig->getSelectedShop()?->getPK(),
 				function () use ($scope) {
 					return $this->getScopeTranslations($scope);
 				},
