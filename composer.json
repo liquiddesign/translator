@@ -6,36 +6,47 @@
     "prefer-stable": true,
     "minimum-stability": "dev",
     "autoload": {
-        "psr-4": {"Translator\\": "src/"},
+        "psr-4": {
+            "Translator\\": "src/"
+        },
         "classmap": []
     },
     "autoload-dev": {
-        "psr-4": { "Translator\\Tests\\": "tests/" }
+        "psr-4": {
+            "Translator\\Tests\\": "tests/"
+        }
     },
     "require": {
         "php": ">=8.2",
         "nette/application": "~3.0",
-        "nette/utils":"~4.0",
-        "nette/di":"~3.0",
-        "latte/latte":"~3.0",
-        "tracy/tracy":"*",
+        "nette/utils": "~4.0",
+        "nette/di": "~3.0",
+        "latte/latte": "~3.0",
+        "tracy/tracy": "*",
         "liquiddesign/storm": "~2.0",
         "liquiddesign/base": "~2.0",
         "ext-pdo": "*",
         "league/csv": "^9.0",
         "nesbot/carbon": "^2.0 || ^3.0"
     },
-    "require-dev":
-    {
-        "nette/tester":"^2.5",
+    "require-dev": {
+        "nette/tester": "^2.5",
         "liquiddesign/codestyle": "^3.0",
         "liquiddesign/migrator": "^1.0",
         "phpstan/phpstan": "^1.10"
     },
     "scripts": {
-        "fix-code": ["@phpcsfix"],
-        "code-style": ["@phpcsfix", "@phpcs"],
-        "check-code": ["@phpcs", "@phpstan"],
+        "fix-code": [
+            "@phpcsfix"
+        ],
+        "code-style": [
+            "@phpcsfix",
+            "@phpcs"
+        ],
+        "check-code": [
+            "@phpcs",
+            "@phpstan"
+        ],
         "phpstan": "phpstan analyse --memory-limit 1G -c phpstan.neon",
         "phpcs": "phpcs --cache --standard=ruleset.xml --ignore=assets src",
         "phpcsfix": "phpcbf --cache --standard=ruleset.xml --ignore=assets src",
@@ -53,5 +64,6 @@
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true
         }
-    }
+    },
+    "version": "2.0.2"
 }
