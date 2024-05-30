@@ -140,8 +140,9 @@ class TranslationRepository extends Repository implements Translator
 		return $this->currentUntranslated;
 	}
 
-	public function translate($message, ...$parameters): string
+	public function translate(string|\Stringable $message, mixed ...$parameters): string
 	{
+
 		$parsedMessage = \explode('.', (string) $message);
 
 		if (!isset($parameters[0])) {
@@ -232,7 +233,7 @@ class TranslationRepository extends Repository implements Translator
 	}
 
 	/**
-	 * @param \League\Csv\Reader $reader
+	 * @param \League\Csv\Reader<array<mixed>> $reader
 	 * @param array<string> $availableMutations
 	 * @throws \League\Csv\Exception
 	 * @throws \League\Csv\InvalidArgument
@@ -339,12 +340,25 @@ class TranslationRepository extends Repository implements Translator
 
 	private function saveTranslation(string $scope, string $id, string $defaultMessage): Translation
 	{
-		return $this->syncOne([
+		$values = [
 			'code' => $scope . '.' . $id,
 			'label' => $defaultMessage,
 			'text' => [$this->defaultMutation => $defaultMessage],
-			'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-		], ['label']);
+		];
+
+		$existingQuery = $this->many()->where('this.code', $scope . '.' . $id);
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($existingQuery);
+
+		$existing = $existingQuery->first();
+
+		if ($existing) {
+			$existing->update($values);
+
+			return $existing;
+		}
+
+		return $this->createOne($values);
 	}
 
 	private function getEmptyMessage(string $id, string $defaultMessage): string
