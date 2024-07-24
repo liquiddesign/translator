@@ -30,6 +30,8 @@ class TranslationRepository extends Repository implements Translator
 
 	private bool $createMode = false;
 
+	private bool $generateUuid = false;
+
 	/**
 	 * @var array<string>
 	 */
@@ -64,9 +66,10 @@ class TranslationRepository extends Repository implements Translator
 		$this->cacheActive = $cacheActive;
 	}
 
-	public function setCreateMode(bool $createMode): void
+	public function setCreateMode(bool $createMode, bool $generateUuid = false): void
 	{
 		$this->createMode = $createMode;
+		$this->generateUuid = $generateUuid;
 	}
 
 	public function setDefaultMutation(string $defaultMutation): void
@@ -345,6 +348,10 @@ class TranslationRepository extends Repository implements Translator
 			'label' => $defaultMessage,
 			'text' => [$this->defaultMutation => $defaultMessage],
 		];
+
+		if ($this->generateUuid) {
+			$values['uuid'] = $scope . '.' . $id;
+		}
 
 		$existingQuery = $this->many()->where('this.code', $scope . '.' . $id);
 

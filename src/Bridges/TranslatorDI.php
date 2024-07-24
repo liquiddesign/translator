@@ -16,6 +16,7 @@ class TranslatorDI extends \Nette\DI\CompilerExtension
 			'defaultMutation' => Expect::bool('cs'),
 			'cache' => Expect::bool(false),
 			'createMode' => Expect::bool(false),
+			'generateUuid' => Expect::bool(false),
 			'scopeLabels' => Expect::arrayOf('string'),
 			'fallbacks' => Expect::arrayOf('string'),
 		]);
@@ -31,7 +32,7 @@ class TranslatorDI extends \Nette\DI\CompilerExtension
 		$service = $builder->addDefinition($this->prefix('translation'))->setType(TranslationRepository::class);
 		
 		$service->addSetup('setCache', [$config['cache']]);
-		$service->addSetup('setCreateMode', [$config['createMode']]);
+		$service->addSetup('setCreateMode', [$config['createMode'], $config['generateUuid']]);
 		$service->addSetup('setDefaultMutation', [$config['defaultMutation']]);
 		$service->addSetup('setScopeLabels', [$config['scopeLabels']]);
 		$service->addSetup('setFallbacks', [$config['fallbacks']]);
