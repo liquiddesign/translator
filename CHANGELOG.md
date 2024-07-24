@@ -4,6 +4,11 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.0.6](https://github.com/liquiddesign/translator/compare/v2.0.5...v2.0.6) (2024-07-24)
+
+
+---
+
 ## [2.0.5](https://github.com/liquiddesign/translator/compare/v2.0.4...v2.0.5) (2024-05-30)
 
 ### Bug Fixes
