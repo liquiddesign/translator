@@ -15,6 +15,7 @@ use StORM\DIConnection;
 use StORM\Repository;
 use StORM\SchemaManager;
 use Tracy\Debugger;
+use Translator\TranslationUsageLogger;
 
 /**
  * Class TranslationRepository
@@ -25,6 +26,10 @@ class TranslationRepository extends Repository implements Translator
 	private ?string $activeMutation = null;
 
 	private string $defaultMutation = 'cs';
+
+	private ?string $translationShop = null;
+
+	private ?TranslationUsageLogger $usageLogger = null;
 
 	private bool $cacheActive = false;
 
@@ -75,6 +80,21 @@ class TranslationRepository extends Repository implements Translator
 	public function setDefaultMutation(string $defaultMutation): void
 	{
 		$this->defaultMutation = $defaultMutation;
+	}
+
+	/**
+	 * Fixní shop (PK) pro tuto codebase — single-brand-per-deployment multishop.
+	 * Když je nastaven, čtení i createMode pracují výhradně s řádky `fk_shop = translationShop`
+	 * (žádný `OR fk_shop IS NULL` fallback, žádné globální řádky). null = původní chování (per selected shop + global).
+	 */
+	public function setTranslationShop(?string $translationShop): void
+	{
+		$this->translationShop = $translationShop;
+	}
+
+	public function setUsageLogger(?TranslationUsageLogger $usageLogger): void
+	{
+		$this->usageLogger = $usageLogger;
 	}
 
 	public function setMutation(string $mutation): void
@@ -129,7 +149,11 @@ class TranslationRepository extends Repository implements Translator
 		}
 
 		if ($filterShops) {
-			$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+			if ($this->translationShop !== null) {
+				$collection->where('this.fk_shop', $this->translationShop);
+			} else {
+				$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+			}
 		}
 
 		return $collection;
@@ -181,6 +205,14 @@ class TranslationRepository extends Repository implements Translator
 
 			if ($this->createMode) {
 				$this->saveTranslation($scope, $id, $defaultMessage);
+			}
+		}
+
+		if ($this->usageLogger !== null) {
+			try {
+				$this->usageLogger->record("$scope.$id");
+			} catch (\Throwable $e) {
+				// usage tracking nikdy nesmí rozbít překlad
 			}
 		}
 
@@ -270,6 +302,15 @@ class TranslationRepository extends Repository implements Translator
 				$newValue['label'] = $value['label'];
 			}
 
+			if (isset($value['code'])) {
+				$newValue['code'] = $value['code'];
+			}
+
+			// round-trip shop (fk_shop) — bez toho by import/obnova zálohy ztratily per-shop scope
+			if (isset($value['shop'])) {
+				$newValue['shop'] = $value['shop'] !== '' ? $value['shop'] : null;
+			}
+
 			foreach ($mutationsInFile as $mutationV) {
 				$newValue['text'][$mutationV] = $value['text_' . $mutationV] ?: null;
 			}
@@ -355,7 +396,12 @@ class TranslationRepository extends Repository implements Translator
 
 		$existingQuery = $this->many()->where('this.code', $scope . '.' . $id);
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($existingQuery);
+		if ($this->translationShop !== null) {
+			$existingQuery->where('this.fk_shop', $this->translationShop);
+			$values['shop'] = $this->translationShop;
+		} else {
+			$this->shopsConfig->filterShopsInShopEntityCollection($existingQuery);
+		}
 
 		$existing = $existingQuery->first();
 

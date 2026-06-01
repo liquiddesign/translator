@@ -19,6 +19,7 @@ class TranslatorDI extends \Nette\DI\CompilerExtension
 			'generateUuid' => Expect::bool(false),
 			'scopeLabels' => Expect::arrayOf('string'),
 			'fallbacks' => Expect::arrayOf('string'),
+			'translationShop' => Expect::string()->nullable(),
 		]);
 	}
 	
@@ -36,6 +37,7 @@ class TranslatorDI extends \Nette\DI\CompilerExtension
 		$service->addSetup('setDefaultMutation', [$config['defaultMutation']]);
 		$service->addSetup('setScopeLabels', [$config['scopeLabels']]);
 		$service->addSetup('setFallbacks', [$config['fallbacks']]);
+		$service->addSetup('setTranslationShop', [$config['translationShop']]);
 		
 		$service->addSetup('@Tracy\Bar::addPanel', [
 			new \Nette\DI\Definitions\Statement(TranslatorTracy::class, []),
