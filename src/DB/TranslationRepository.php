@@ -84,8 +84,17 @@ class TranslationRepository extends Repository implements Translator
 
 	/**
 	 * Fixní shop (PK) pro tuto codebase — single-brand-per-deployment multishop.
-	 * Když je nastaven, čtení i createMode pracují výhradně s řádky `fk_shop = translationShop`
-	 * (žádný `OR fk_shop IS NULL` fallback, žádné globální řádky). null = původní chování (per selected shop + global).
+	 *
+	 * Znamená „**čti řádky tohohle shopu místo vybraného**", ne „ignoruj společné". Řádek s
+	 * `fk_shop IS NULL` je napříč celým balíkem sdílený záznam (viz
+	 * `Base\ShopsConfig::filterShopsInShopEntityCollection()`, které jede `IN (shop) OR IS NULL`),
+	 * takže i s fixním shopem globální řádky **platí dál** jako fallback. Jinak by nasazení s fixním
+	 * shopem tiše přišlo o všechny sdílené překlady.
+	 *
+	 * Zápis (`createMode`) naopak míří výhradně na `fk_shop = translationShop` — **čti sdíleně,
+	 * zapisuj do svého**, ať se sdílený řádek nepřepíše hodnotou jednoho shopu.
+	 *
+	 * `null` = per selected shop + global.
 	 */
 	public function setTranslationShop(?string $translationShop): void
 	{
@@ -149,11 +158,9 @@ class TranslationRepository extends Repository implements Translator
 		}
 
 		if ($filterShops) {
-			if ($this->translationShop !== null) {
-				$collection->where('this.fk_shop', $this->translationShop);
-			} else {
-				$this->shopsConfig->filterShopsInShopEntityCollection($collection);
-			}
+			// `$shops = null` → vybraný shop; jinak fixní shop. Obojí přes tentýž filtr, takže sdílené
+			// řádky (`fk_shop IS NULL`) zůstávají viditelné v obou režimech.
+			$this->shopsConfig->filterShopsInShopEntityCollection($collection, $this->translationShop);
 		}
 
 		return $collection;
@@ -379,6 +386,12 @@ class TranslationRepository extends Repository implements Translator
 			$collection->select(['text' => "IF(text$mutationSuffix IS NULL, text$fallbackSuffix, text$mutationSuffix)"]);
 		}
 
+		// Když stejný `code` existuje sdíleně i pro shop, musí vyhrát řádek shopu. `setIndex` staví mapu
+		// v pořadí, v jakém řádky přijdou z DB, takže bez `ORDER BY` rozhodovalo pořadí náhodné.
+		// `fk_shop IS NULL` je 1 pro sdílený řádek a 0 pro shopový; DESC dá sdílený první, shopový
+		// poslední — a ten mapu přepíše.
+		$collection->orderBy(['this.fk_shop IS NULL' => 'DESC']);
+
 		return $collection->setIndex('IF(LENGTH(this.code) > 0, this.code, this.uuid)')->toArrayOf('text');
 	}
 
@@ -396,6 +409,9 @@ class TranslationRepository extends Repository implements Translator
 
 		$existingQuery = $this->many()->where('this.code', $scope . '.' . $id);
 
+		// Zápis je záměrně tvrdě scopovaný, na rozdíl od čtení v `getTranslations()`: nový nebo doplněný
+		// klíč patří tomuhle shopu, ne sdílené sadě. Kdyby se sem pustil `IS NULL` fallback, `createMode`
+		// by přepsal sdílený řádek hodnotou jednoho shopu a rozbil ho všem ostatním.
 		if ($this->translationShop !== null) {
 			$existingQuery->where('this.fk_shop', $this->translationShop);
 			$values['shop'] = $this->translationShop;

@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.2](https://github.com/liquiddesign/translator/compare/v2.1.1...v2.1.2) (2026-08-28)
+
+### Bug Fixes
+
+* `translationShop` no longer hides shared (`fk_shop IS NULL`) rows — it now selects *which shop's* rows to read instead of the selected one, keeping the shared fallback that the rest of the stack relies on
+* Deterministic precedence in `getScopeTranslations()` — when the same `code` exists both shared and per-shop, the shop row now always wins (previously decided by DB row order)
+
+
+---
+
 ## [2.0.7](https://github.com/liquiddesign/translator/compare/v2.0.6...v2.0.7) (2024-07-24)
 
 ### Features
