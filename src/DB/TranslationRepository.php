@@ -23,6 +23,9 @@ use Translator\TranslationUsageLogger;
  */
 class TranslationRepository extends Repository implements Translator
 {
+	/** Tag všech položek cache překladů — {@see invalidateCache()} je smaže naráz. */
+	public const CACHE_TAG = 'translator';
+
 	private ?string $activeMutation = null;
 
 	private string $defaultMutation = 'cs';
@@ -64,6 +67,30 @@ class TranslationRepository extends Repository implements Translator
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage, 'translator');
+
+		// Každý zápis přes repository (admin, import, createMode) zneplatní cache překladů, takže
+		// `cache: true` neukazuje po úpravě staré texty. Zápis mimo StORM (SQL v migraci) cache nevidí —
+		// po migraci ji maže deploy spolu s ostatní cache aplikace.
+		$invalidate = function (): void {
+			$this->invalidateCache();
+		};
+		$this->onCreate[] = $invalidate;
+		$this->onUpdate[] = $invalidate;
+		$this->onDelete[] = $invalidate;
+	}
+
+	/**
+	 * Zahodí nacachované překlady všech scopů, mutací a shopů (i ty načtené v aktuálním requestu).
+	 */
+	public function invalidateCache(): void
+	{
+		$this->scopeTranslations = [];
+
+		if (!$this->cacheActive) {
+			return;
+		}
+
+		$this->cache->clean([Cache::Tags => [self::CACHE_TAG]]);
 	}
 
 	public function setCache(bool $cacheActive): void
@@ -195,9 +222,13 @@ class TranslationRepository extends Repository implements Translator
 		[$scope, $id] = $parsedMessage;
 
 		if ($this->cacheActive) {
+			// Klíč per scope (dřív obsahoval i ID první přeložené zprávy, takže každá stránka měla vlastní
+			// kopii scopu a úpravu nešlo cíleně zneplatnit).
 			$this->scopeTranslations[$scope] ??= $this->cache->load(
-				"$scope.$id." . $this->getMutation() . $this->shopsConfig->getSelectedShop()?->getPK(),
-				function () use ($scope) {
+				"scope|$scope|" . $this->getMutation() . '|' . $this->shopsConfig->getSelectedShop()?->getPK(),
+				function (&$dependencies) use ($scope) {
+					$dependencies[Cache::Tags] = [self::CACHE_TAG];
+
 					return $this->getScopeTranslations($scope);
 				},
 			);
