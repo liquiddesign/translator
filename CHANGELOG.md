@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.2.0](https://github.com/liquiddesign/translator/compare/v2.1.2...v2.2.0) (2026-09-30)
+
+### Features
+
+* Cache invalidation — every write through `TranslationRepository` (admin edits, CSV import, `createMode`) cleans the translation cache through StORM `onCreate` / `onUpdate` / `onDelete`, so `cache: true` no longer serves stale texts after an edit. Writes outside the repository (raw SQL in a migration) call the new public `invalidateCache()` or rely on the cache clear of a deploy
+* The cache key is per scope, mutation and shop (it used to include the id of the first message translated in the scope, so every page kept its own copy of the scope), and entries carry the `translator` tag
+
+
+---
+
 ## [2.1.2](https://github.com/liquiddesign/translator/compare/v2.1.1...v2.1.2) (2026-08-28)
 
 ### Bug Fixes
